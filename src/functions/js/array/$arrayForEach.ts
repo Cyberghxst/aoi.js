@@ -47,15 +47,18 @@ arrayForEach.setCode((data: funcData, scope: Scope[], thisArg) => {
     );
 
     const condition = values.join(";");
-    const executedCondition = transpileArrayCallback(
+    // A forEach query is a code body to run per element, not a condition:
+    // running it through the condition solver would wrap the statements in
+    // a template literal and break them.
+    const executedCode = transpileArrayCallback(
         currentScope,
         condition,
-        true,
+        false,
     );
 
     const res = escapeResult(
         `${escapeVars(name)}.forEach(async array_element => {
-                ${executedCondition}
+                ${executedCode}
             })`,
     );
 

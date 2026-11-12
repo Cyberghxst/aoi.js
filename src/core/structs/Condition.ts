@@ -2,7 +2,13 @@ import { inspect } from "util";
 import { parseData } from "../../util/transpilerHelpers.js";
 import { parseString } from "../parsers/stringParser.js";
 import { BundlerCustoms } from "../../typings/enums.js";
-const operators = ["===", "!==", "==", "!=", ">", "<", ">=", "<="];
+/**
+ * Comparison operators, longest first: `find` returns the first operator
+ * contained in the condition, so `<=` must be checked before `<` (and
+ * `>=` before `>`, `===` before `==`), otherwise `a<=b` is split as
+ * `a < "=b"` and the right side is stringified.
+ */
+const operators = ["===", "!==", ">=", "<=", "==", "!=", ">", "<"];
 
 /**
  * One node of a parsed condition (e.g. the inside of `$if[...]`).

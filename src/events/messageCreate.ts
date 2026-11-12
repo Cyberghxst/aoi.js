@@ -1,5 +1,5 @@
 import { AoiClient } from "../structures/AoiClient.js";
-import { GatewayEventNames, Message, Snowflake } from "zeneth";
+import { Channel, GatewayEventNames, Guild, Message, Snowflake } from "zeneth";
 import { isAutoFetchDataEnabled } from "../util/DapiHelper.js";
 import { AoiClientEvents, AutoFetchDataType, CommandType } from "../typings/enums.js";
 
@@ -41,17 +41,17 @@ export async function messageCreate(message: Message, client: AoiClient) {
             data: {
                 message,
                 channel:
-                    client.cache?.channels?.get(message.channelId) ??
-                    isAutoFetchDataEnabled(AutoFetchDataType.Channel, client)
+                    client.cache?.channels?.get(message.channelId) as Channel | undefined ??
+                    (isAutoFetchDataEnabled(AutoFetchDataType.Channel, client)
                         ? await client.client.getChannel(message.channelId)
-                        : { id: message.channelId, fetched: false },
+                        : { id: message.channelId, fetched: false }),
                 guild:
-                    client.cache?.guilds?.get(message.guildId) ??
-                    isAutoFetchDataEnabled(AutoFetchDataType.Guild, client)
+                    client.cache?.guilds?.get(message.guildId) as Guild | undefined ??
+                    (isAutoFetchDataEnabled(AutoFetchDataType.Guild, client)
                         ? await client.client.getGuild(
                               <Snowflake>message.guildId,
                         )
-                        : { id: message.guildId, fetched: false },
+                        : { id: message.guildId, fetched: false }),
                 author: message.author,
                 client: client.client,
                 args,

@@ -8,6 +8,13 @@ const compare = (first: { order: number }, second: { order: number }) => {
     return 0;
 };
 
+/**
+ * Milliseconds in one month: the mean Gregorian month, 365.2425 days
+ * per year / 12 = 30.436875 days. parse() and format() share this one
+ * value, so a parsed month formats back to exactly one month.
+ */
+export const MS_PER_MONTH = 2629746000;
+
 const pluralize = (num: number, txt: string, suffix = "s") =>
     `${num} ${txt}${num !== 1 ? suffix : ""}`;
 
@@ -44,7 +51,7 @@ export function parse(time: string | number) {
                         Number(part.split("mon")[0].split("M")[0]),
                         "month",
                     ),
-                    ms: Number(part.split("mon")[0].split("M")[0]) * 2628002880,
+                    ms: Number(part.split("mon")[0].split("M")[0]) * MS_PER_MONTH,
                     order: 2,
                 });
             if (part.endsWith("w"))
@@ -131,7 +138,7 @@ export function format(time: number) {
     } = {
         object: {
             years: takeUnit(31536000000),
-            months: takeUnit(2628746000),
+            months: takeUnit(MS_PER_MONTH),
             weeks: takeUnit(604800000),
             days: takeUnit(86400000),
             hours: takeUnit(3600000),

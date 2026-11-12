@@ -1,5 +1,7 @@
 import {
+    Channel,
     GatewayEventNames,
+    Guild,
     Interaction,
     InteractionTypes,
     Snowflake,
@@ -44,19 +46,19 @@ export async function interactionCreate(
                 message: interaction.message,
                 channel:
                     interaction.channel ??
-                    client.cache?.channels?.get(interaction.channelId) ??
-                    isAutoFetchDataEnabled(AutoFetchDataType.Channel, client)
+                    client.cache?.channels?.get(interaction.channelId) as Channel | undefined ??
+                    (isAutoFetchDataEnabled(AutoFetchDataType.Channel, client)
                         ? await client.client.getChannel(
                               interaction.channelId as Snowflake,
                         )
-                        : { id: interaction.channelId, fetched: false },
+                        : { id: interaction.channelId, fetched: false }),
                 guild:
-                    client.cache?.guilds?.get(interaction.guildId) ??
-                    isAutoFetchDataEnabled(AutoFetchDataType.Guild, client)
+                    client.cache?.guilds?.get(interaction.guildId) as Guild | undefined ??
+                    (isAutoFetchDataEnabled(AutoFetchDataType.Guild, client)
                         ? await client.client.getGuild(
                               interaction.guildId as Snowflake,
                         )
-                        : { id: interaction.guildId, fetched: false },
+                        : { id: interaction.guildId, fetched: false }),
                 author: interaction.user,
                 member: interaction.member,
             },

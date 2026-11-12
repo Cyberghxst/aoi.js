@@ -137,7 +137,7 @@ export class CustomEvent extends EventEmitter {
         const box = boxen(
             `${loadResults.map((cmd) => {
                 return `∷ ${chalk.cyanBright(cmd.loaded ? "Loaded" : "Failed")} ${chalk.greenBright(
-                    cmd,
+                    cmd.path,
                 )} ${chalk.redBright(cmd.loaded ? "" : cmd.reason)}`;
             }).join("\n")}
         `,

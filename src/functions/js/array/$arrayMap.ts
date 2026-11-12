@@ -50,7 +50,7 @@ arrayMap.setCode((data: funcData, scope: Scope[], thisArg) => {
 
     const res = escapeResult(`
                 ${escapeVars(name)}.map(array_element => {
-                    ${executedCode}
+                    return ${executedCode}
                     })`);
 
     return thisArg.finishResult(scope, data, res);
