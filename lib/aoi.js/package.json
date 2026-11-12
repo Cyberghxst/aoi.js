@@ -6,6 +6,11 @@
 	"module": "dist/esm/index.js",
 	"types": "dist/types/index.d.ts",
 	"type": "module",
+	"scripts": {
+		"build": "npx tsc -p tsconfig.esm.json && npx tsc -p tsconfig.cjs.json && node scripts/write-dist-package-json.mjs",
+		"example:ping": "node examples/ping-bot/index.mjs",
+		"example:ping:test": "node examples/ping-bot/smoke.mjs"
+	},
 	"exports": {
 		".": {
 			"import": "./dist/esm/index.js",

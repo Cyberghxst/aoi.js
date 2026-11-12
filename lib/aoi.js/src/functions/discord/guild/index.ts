@@ -1,2 +1,2 @@
-export * from './$guildid.js';
-export * from './$guildname.js';
+export * from './$guildId.js';
+export * from './$guildName.js';

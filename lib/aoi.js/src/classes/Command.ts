@@ -1,7 +1,7 @@
 import { type AsyncFunction, type CommandTypes } from '@aoi.js/typings/type.js';
 import type AoiClient from './AoiClient.js';
 import { type ICommandOptions } from '@aoi.js/typings/interface.js';
-import { type Snowflake } from 'discord.js';
+import { type Snowflake, type ApplicationCommandOptionData } from 'discord.js';
 import { escapeResult } from '@aoi.js/utils/Helpers/core.js';
 
 export default class Command {
@@ -10,6 +10,8 @@ export default class Command {
 	type!: CommandTypes;
 	code!: string | AsyncFunction;
 	aliases?: string[];
+	description?: string;
+	options?: ApplicationCommandOptionData[];
 	channel?: string;
 	// eslint-disable-next-line @typescript-eslint/naming-convention
 	__path__!: string;
@@ -25,6 +27,8 @@ export default class Command {
 		this.type = data.type;
 		this.code = data.code;
 		this.aliases = data.aliases;
+		this.description = data.description;
+		this.options = data.options;
 		this.__path__ = data.__path__;
 		this.executeAt = data.executeAt ?? 'both';
 		this.reverseRead = data.reverseRead ?? false;
@@ -38,6 +42,8 @@ export default class Command {
 					'type',
 					'code',
 					'aliases',
+					'description',
+					'options',
 					'__path__',
 					'executeAt',
 					'reverseRead',
@@ -79,6 +85,15 @@ export default class Command {
 					useChannel: channelId?.includes('__$DISCORD_DATA$__')
 						? escapeResult(channelId)
 						: channelId,
+					// En un slash o en un componente (botón, modal, menú) no
+					// hay channel.send: la respuesta sale por
+					// interaction.reply con el mismo payload.
+					...(this.type === 'interaction' || this.type === 'component'
+						? {
+								sendFunction:
+									'await __$DISCORD_DATA$__.interaction.reply',
+							}
+						: {}),
 				},
 				command: this,
 			});

@@ -2,12 +2,13 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 
 import TestClient from '@aoi.js/testing/testClient.js';
+import { $createobject } from './$createobject.js';
 import { $getobject } from './$getobject.js';
 import type { ITranspileOptions } from '@aoi.js/typings/interface.js';
 import TestCommand from '@aoi.js/testing/testCommand.js';
 
 const client = new TestClient();
-client.transpiler.addFunctions({ $getobject });
+client.transpiler.addFunctions({ $createobject, $getobject });
 
 const transpilerOptions: ITranspileOptions = {
 	scopeData: {
@@ -23,7 +24,9 @@ const transpilerOptions: ITranspileOptions = {
 };
 
 const codeToFail = '$getobject';
-const codeToPass = '$getobject[test]';
+// El objeto tiene que existir antes: $getobject tira
+// ObjectDoesNotExist si no se creó con $createobject.
+const codeToPass = '$createobject[test;{a:1}]\n$getobject[test]';
 
 void describe('$getobject', () => {
 	void it('should not compile successfully without arg', () => {
@@ -33,11 +36,26 @@ void describe('$getobject', () => {
 		});
 	});
 
-	void it('should compile successfully without arg', () => {
+	void it('should compile successfully after $createobject', () => {
 		const func = client.transpiler.transpile(codeToPass, transpilerOptions);
 		assert.ok(func);
 		assert.strictEqual(typeof func.func, 'function');
 	});
 
-	
+	void it('should return the object value', async () => {
+		const orignalLog = console.log;
+		let logged: unknown;
+		console.log = (log: Record<string, string>) => {
+			logged = client.parseData(log.content, $getobject.returns);
+		};
+		const { func } = client.transpiler.transpile(
+			codeToPass,
+			transpilerOptions,
+		);
+		// @ts-expect-error: func is a function
+		await func?.();
+		console.log = orignalLog;
+
+		assert.strictEqual(logged, '{ a: 1 }');
+	});
 });

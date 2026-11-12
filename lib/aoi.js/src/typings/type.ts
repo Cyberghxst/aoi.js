@@ -14,7 +14,8 @@ export type CommandTypes =
 	| 'basic'
 	| 'interaction'
 	| 'ready'
-	| 'debug';
+	| 'debug'
+	| 'component';
 // export type AsyncFunction = (arg: ITranspiledFuncData) => Promise<unknown>;
 
 export type AutoFetchDataTypes =

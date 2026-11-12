@@ -2,12 +2,12 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 
 import TestClient from '@aoi.js/testing/testClient.js';
-import { $guildid } from './$guildid.js';
+import { $guildId } from './$guildId.js';
 import type { ITranspileOptions } from '@aoi.js/typings/interface.js';
 import TestCommand from '@aoi.js/testing/testCommand.js';
 
 const client = new TestClient();
-client.transpiler.addFunctions({ $guildid });
+client.transpiler.addFunctions({ $guildId });
 
 const transpilerOptions: ITranspileOptions = {
 	scopeData: {

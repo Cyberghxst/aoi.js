@@ -21,8 +21,8 @@ const $removeobjectproperty = new FunctionBuilder()
 	.setName('$removeobjectproperty')
 	.setBrackets(true)
 	.setOptional(false)
-	.setType(FunctionType.Getter)
-	.setReturns(ReturnType.Any)
+	.setType(FunctionType.Setter)
+	.setReturns(ReturnType.Void)
 	.setFields([
 		{
 			name: 'objectName',
@@ -66,7 +66,7 @@ const $removeobjectproperty = new FunctionBuilder()
 		}
 
 		const escaped = escapeResult(
-			`delete ${escapeVars(objectName)}.${propertyName}`,
+			`delete ${escapeVars(objectName)}.${propertyName};\n`,
 		);
 
 		return {

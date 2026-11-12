@@ -21,6 +21,9 @@ export class CommandManager {
 	interaction: Group<number, Command> = new Group<number, Command>(Infinity);
 	ready: Group<number, Command> = new Group<number, Command>(Infinity);
 	debug: Group<number, Command> = new Group<number, Command>(Infinity);
+	// Comandos de componentes (botones, modales, menús): se buscan por
+	// customId, no se registran en Discord.
+	component: Group<number, Command> = new Group<number, Command>(Infinity);
 
 	readonly #client: AoiClient;
 	readonly #reader: AoiReader;
@@ -30,11 +33,13 @@ export class CommandManager {
 	}
 
 	isValidType(type: string) {
-		return ['basic', 'interaction', 'ready', 'debug'].includes(type);
+		return ['basic', 'interaction', 'ready', 'debug', 'component'].includes(
+			type,
+		);
 	}
 
 	get types() {
-		return ['basic', 'interaction', 'ready', 'debug'];
+		return ['basic', 'interaction', 'ready', 'debug', 'component'];
 	}
 
 	add(command: Optional<ICommandOptions, '__path__'>) {
@@ -55,6 +60,47 @@ export class CommandManager {
 
 	addMany(commands: Array<Optional<ICommandOptions, '__path__'>>) {
 		for (const command of commands) this.add(command);
+	}
+
+	/**
+	 * Registra los comandos de tipo 'interaction' como slash commands en
+	 * Discord. Sin guildId se registran globales (pueden tardar hasta 1
+	 * hora en aparecer); con guildId aparecen al instante en ese servidor.
+	 *
+	 * @returns Cuántos comandos se registraron (0 si no hay ninguno).
+	 */
+	async registerSlashCommands(guildId?: string): Promise<number> {
+		const commands = [...this.interaction.values()].map((cmd) => {
+			if (!/^[\p{Ll}\p{N}_-]{1,32}$/u.test(cmd.name)) {
+				throw AoijsErrorHandler.CommandError(
+					ErrorCode.InvalidCommand,
+					`Invalid slash command name "${cmd.name}": use 1-32 lowercase letters, numbers, _ or -`,
+					cmd,
+				);
+			}
+
+			return {
+				name: cmd.name,
+				description: cmd.description ?? `Comando ${cmd.name}`,
+				options: cmd.options ?? [],
+			};
+		});
+
+		if (!commands.length) return 0;
+
+		const application = this.#client.client.application;
+		if (!application) {
+			throw new Error(
+				'Cannot register slash commands: the client is not logged in yet',
+			);
+		}
+
+		if (guildId) {
+			await application.commands.set(commands, guildId);
+		} else {
+			await application.commands.set(commands);
+		}
+		return commands.length;
 	}
 
 	async load({

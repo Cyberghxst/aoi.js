@@ -272,10 +272,21 @@ export default class Scope {
 			)}).send`
 			: this.sendFunction;
 
+		// Guarda en ejecución: hasSendData se decide en compilación mirando
+		// el código, y un comando que es solo una función ($args, $message...)
+		// siempre cuenta como "tiene contenido" aunque la función devuelva ""
+		// en ejecución. Sin esta guarda se enviaría un mensaje vacío, que
+		// Discord rechaza. Si el contenido queda vacío y no hay embeds,
+		// componentes, archivos ni stickers, no se llama al envío.
 		const sent =
 			this.hasSendData && sendMessage
 				? `
-		${this.addReturn ? 'return ' : ''} await ${channelSendFunction}( ${payload} );`
+		{
+			const __$AOIJS_PAYLOAD$__ = ${payload};
+			if (String(__$AOIJS_PAYLOAD$__.content ?? '').trim() !== '' || __$AOIJS_PAYLOAD$__.embeds.length || __$AOIJS_PAYLOAD$__.components.length || __$AOIJS_PAYLOAD$__.files.length || __$AOIJS_PAYLOAD$__.stickers.length) {
+				${this.addReturn ? 'return ' : ''} await ${channelSendFunction}(__$AOIJS_PAYLOAD$__);
+			}${this.addReturn ? ' else return;' : ''}
+		}`
 				: `${this.addReturn ? 'return;' : ''}`;
 
 		const initialVars = sendMessage

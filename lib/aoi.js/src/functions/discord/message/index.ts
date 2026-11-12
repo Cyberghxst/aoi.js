@@ -1,4 +1,5 @@
 export * from './$message.js';
+export * from './$args.js';
 export * from './$messageid.js';
 export * from './$messagewebhookid.js';
 export * from './$messagepublish.js';

@@ -16,6 +16,8 @@ import {
 	type Guild,
 	type Message,
 	type GuildMember,
+	type ApplicationCommandOptionData,
+	type Interaction,
 } from 'discord.js';
 
 export interface ITranspilerOptions {
@@ -84,6 +86,10 @@ export interface ICommandOptions {
 	aliases?: string[];
 	reverseRead?: boolean;
 	executeAt?: 'guild' | 'dm' | 'both';
+	// Solo para comandos de tipo 'interaction': texto que Discord muestra
+	// en la lista de slash commands y sus opciones.
+	description?: string;
+	options?: ApplicationCommandOptionData[];
 	__path__: string;
 }
 
@@ -91,6 +97,10 @@ export interface ITranspilerData {
 	bot: AoiClient;
 	client: Client;
 	message?: Message;
+	// La interacción que disparó el comando: un slash, un botón, un
+	// envío de modal o un menú. Cada tipo expone lo suyo (options solo
+	// en slash, fields solo en modales, values solo en menús).
+	interaction?: Interaction;
 	guild?: Guild;
 	channel?: Channel;
 	author?: User;
@@ -118,6 +128,10 @@ export interface IAoiClientOptions {
 	djsClientOptions?: ClientOptions;
 	transpilerOptions?: ITranspilerOptions;
 	testMode?: boolean;
+	// Servidor donde registrar los slash commands al arrancar.
+	// Con él, aparecen al instante; sin él se registran globales y pueden
+	// tardar hasta 1 hora en aparecer en Discord.
+	slashGuildId?: string;
 }
 
 export interface IAoiLoggerOptions {
