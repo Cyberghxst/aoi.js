@@ -34,3 +34,12 @@ export enum BundlerCustoms  {
 export enum AoiClientEvents {
     Error = "error",
 }
+
+export enum FunctionType {
+    Getter = "getter",
+    Setter = "setter",
+    Function = "function",
+    FunctionGetter = "function_getter",
+    Scope = "scope",
+    ScopeGetter = "scope_getter",
+}

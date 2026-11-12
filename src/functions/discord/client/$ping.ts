@@ -1,9 +1,10 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
 const ping = new AoiJSFunction()
     .setName("$ping")
-    .setType("getter")
+    .setType(FunctionType.Getter)
     .setBrackets(false)
     .setOptional(false)
     .setFields([])

@@ -1,3 +1,8 @@
+/**
+ * Error thrown when user code cannot be transpiled into executable JavaScript.
+ * Carries the offending code and command context so the failure can be traced
+ * back to the exact user input instead of surfacing as a bare syntax error.
+ */
 export class TranspilerError extends Error {
     cause: TranspilerError;
     function?: { name: string; code: string };

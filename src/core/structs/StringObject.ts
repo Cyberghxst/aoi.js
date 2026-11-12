@@ -1,3 +1,8 @@
+/**
+ * A parsed `{...}` / `[...]` literal found inside user code, kept as a tree
+ * of keys, values and nested objects so each part can be resolved (strings
+ * parsed, functions executed) before the literal is reassembled.
+ */
 export default class StringObject {
     parent: StringObject | undefined;
     children: StringObject[];
@@ -29,12 +34,12 @@ export default class StringObject {
     }
     solve() {
         if (this.children) {
-            this.children.forEach((x) => {
-                const res = x.solve();
-                const index = this.values.indexOf(`#StringObject_${x.name}#`);
-                const keyIndex = this.keys.indexOf(`#StringObject_${x.name}#`);
-                this.keys[keyIndex] = res;
-                this.values[index] = res;
+            this.children.forEach((child) => {
+                const result = child.solve();
+                const index = this.values.indexOf(`#StringObject_${child.name}#`);
+                const keyIndex = this.keys.indexOf(`#StringObject_${child.name}#`);
+                this.keys[keyIndex] = result;
+                this.values[index] = result;
             });
             const keys = this.keys;
             const values = this.values;

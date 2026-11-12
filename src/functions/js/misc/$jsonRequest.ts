@@ -12,10 +12,11 @@ import {
     escapeResult,
     getFunctionList,
 } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
 const jsonRequest = new AoiJSFunction()
     .setName("$jsonRequest")
-    .setType("scope_getter")
+    .setType(FunctionType.ScopeGetter)
     .setBrackets(true)
     .setOptional(true)
     .setFields([

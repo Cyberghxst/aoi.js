@@ -2,11 +2,25 @@ import { AoiClient } from "../structures/AoiClient.js";
 import { GatewayEventNames, Message, Snowflake } from "zeneth";
 import { isAutoFetchDataEnabled } from "../util/DapiHelper.js";
 import { AoiClientEvents } from "../typings/enums.js";
+
+/** Subscribes the message handler to the gateway's MessageCreate event. */
 export function onMessage(client: AoiClient) {
     client.client.on(GatewayEventNames.MessageCreate, async (message) => {
         await messageCreate(message, client);
     });
 }
+
+/**
+ * Runs the basic command matching a message's prefix and first word
+ * (or one of its aliases). Messages without a configured prefix, or
+ * with a prefix but no command word, are ignored. The channel and
+ * guild are taken from the cache when available, then fetched live
+ * when auto-fetch is enabled for that kind of data; otherwise a stub
+ * carrying only the id is passed, so commands can still read the id
+ * without a fetch. Errors from a command are swallowed when the
+ * command already handled them (the `component` flag), and anything
+ * else is emitted as a client error.
+ */
 export async function messageCreate(message: Message, client: AoiClient) {
     let prefix: string | undefined;
     if (client.options.prefixes instanceof Array)
@@ -22,8 +36,8 @@ export async function messageCreate(message: Message, client: AoiClient) {
     await client.managers.commands
         .exec({
             type: "basic",
-            filter: (x) =>
-                x.name === cmd || (x.aliases?.includes(cmd) ?? false),
+            filter: (command) =>
+                command.name === cmd || (command.aliases?.includes(cmd) ?? false),
             data: {
                 message,
                 channel:

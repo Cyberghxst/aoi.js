@@ -2,7 +2,7 @@ import { TranspilerError } from "../core/error.js";
 import Scope from "../core/structs/Scope.js";
 import FUNCDATA from "../functions/index.js";
 import { FunctionData, funcData } from "../typings/interfaces.js";
-import { TranspilerCustoms } from "../typings/enums.js";
+import { FunctionType, TranspilerCustoms } from "../typings/enums.js";
 import { StringObject, parseStringObject } from "../index.js";
 import { Command } from "../structures/Command.js";
 /**
@@ -18,30 +18,11 @@ import { Command } from "../structures/Command.js";
  * ```
  */
 export function areBracketsBalanced(code: string): boolean {
-    const leftbracket = /\[/g;
-    const rightbracket = /\]/g;
-    const leftbracketCount = code.match(leftbracket)?.length ?? 0;
-    const rightbracketCount = code.match(rightbracket)?.length ?? 0;
-    return leftbracketCount === rightbracketCount;
-}
-
-/**
- * Counts the number of brackets in the given code.
- * @param {string} code - The code to count the brackets in.
- * @returns {Object} - Returns an object containing the number of left and right brackets.
- * @example
- * ```js
- * countBrackets("[]") // { leftbracketCount: 1, rightbracketCount: 1 }
- * countBrackets("[[]]") // { leftbracketCount: 2, rightbracketCount: 2 }
- * ```
- */
-
-export function countBrackets(code: string) {
-    const leftbracket = /\[/g;
-    const rightbracket = /\]/g;
-    const leftbracketCount = code.match(leftbracket)?.length ?? 0;
-    const rightbracketCount = code.match(rightbracket)?.length ?? 0;
-    return { leftbracketCount, rightbracketCount };
+    const leftBracketPattern = /\[/g;
+    const rightBracketPattern = /\]/g;
+    const leftBracketCount = code.match(leftBracketPattern)?.length ?? 0;
+    const rightBracketCount = code.match(rightBracketPattern)?.length ?? 0;
+    return leftBracketCount === rightBracketCount;
 }
 
 /**
@@ -73,17 +54,17 @@ export function parseData(text: string) {
             return JSON.parse(text);
         } catch {
             if (text.startsWith("{") && text.endsWith("}")) {
-                const so = new StringObject("{");
-                so.addEnd("}");
-                let e;
-                eval(`e = ${parseStringObject(text, so).solve()}`);
-                return e;
+                const stringObject = new StringObject("{");
+                stringObject.addEnd("}");
+                let evaluatedValue;
+                eval(`evaluatedValue = ${parseStringObject(text, stringObject).solve()}`);
+                return evaluatedValue;
             } else if (text.startsWith("[") && text.endsWith("]")) {
-                const so = new StringObject("[");
-                so.addEnd("]");
-                let e;
-                eval(`e = ${parseStringObject(text, so).solve()}`);
-                return e;
+                const stringObject = new StringObject("[");
+                stringObject.addEnd("]");
+                let evaluatedValue;
+                eval(`evaluatedValue = ${parseStringObject(text, stringObject).solve()}`);
+                return evaluatedValue;
             } else return text;
         }
     }
@@ -105,12 +86,14 @@ export function escapeVars(name: string) {
 }
 
 /**
- * Unescapes a variable name by removing the '__$' and '$__'.
- * @param {string} res - The variable name to unescape.
- * @returns {string} The unescaped variable name.
+ * Wraps a result string with the transpiler's function-start/end markers so
+ * it is recognized as generated code (and not plain message text) while the
+ * code is being assembled.
+ * @param {string} res - The result string to wrap.
+ * @returns {string} The wrapped result string.
  * @example
  * ```js
- * unescapeVars("__$a$__") // "a"
+ * escapeResult("__$a$__") // "#FUNCTION_START#__$a$__#FUNCTION_END#"
  * ```
  */
 
@@ -201,19 +184,6 @@ export function escapeFunctionResult(result: string) {
 }
 
 /**
- * Checks if the given code has a function.
- * @param {string} code - The code to check.
- * @returns {boolean} - Returns true if the code has a function, false otherwise.
- * @example
- * ```js
- * hasFunction("$ping") // true
- * ```
- */
-export function hasFunction(code: string) {
-    return functionFinderRegex.test(code);
-}
-
-/**
  * Generates data of the given function in the given code.
  * @param {string} code - The code to generate the function data in.
  * @param {string} func - The function to generate the data of.
@@ -222,7 +192,7 @@ export function hasFunction(code: string) {
  * @returns {funcData} - Returns the generated function data.
  * @example
  * ```js
- * getFunctionData("$ping") // { inside: "", total: "$ping", splits: [], funcs: [], parsed: "$ping", type: "getter", code: [Function (anonymous)] }
+ * getFunctionData("$ping") // { inside: "", total: "$ping", splits: [], funcs: [], parsed: "$ping", type: FunctionType.Getter, code: [Function (anonymous)] }
  * ```
  */
 
@@ -232,26 +202,26 @@ export function getFunctionData(
     functions: string[],
     command?: Command,
 ): funcData {
-    let FuncD = FUNCDATA[func];
-    if(func === "$EXECUTEMAINCODEFUNCTION") {
-        FuncD = {
+    let functionDefinition = FUNCDATA[func];
+    if (func === "$EXECUTEMAINCODEFUNCTION") {
+        functionDefinition = {
             name: "$EXECUTEMAINCODEFUNCTION",
             brackets: true,
             optional: false,
             default: ["void"],
             returns: undefined,
             code: (() => {}) as unknown as FunctionData["code"],
-            type: "scope",
+            type: FunctionType.Scope,
             fields: [
                 {
                     name: "code",
                     type: "string",
                     required: true,
-                }
+                },
             ],
             description: "Main Execution Function",
             version: "7.0.0",
-            example: "N/A"
+            example: "N/A",
         };
     }
     const reg = new RegExp(`${func.replace("$", "\\$")}`, "i");
@@ -268,10 +238,10 @@ export function getFunctionData(
     // eslint-disable-next-line no-constant-condition
     while (true) {
         if (i >= code.length) break;
-        if (!FuncD?.brackets ) {
+        if (!functionDefinition?.brackets) {
             break;
         }
-        if (!FuncD?.optional && !code.slice(func.length).startsWith("[")) {
+        if (!functionDefinition?.optional && !code.slice(func.length).startsWith("[")) {
             throw new TranspilerError("Function requires brackets", {
                 function: {
                     name: func,
@@ -283,11 +253,6 @@ export function getFunctionData(
         }
 
         if (rightCount === leftCount && rightCount !== 0) break;
-        // if (!areBracketsBalanced(code)) {
-        //     throw new TranspilerError(
-        //         "Brackets are not balanced in code:\n\n" + code,
-        //     );
-        // }
         if (code.slice(func.length)[0] !== "[") {
             break;
         }
@@ -312,22 +277,22 @@ export function getFunctionData(
             ? rawTotal.substring(func.length + 1, rawTotal.length - 1)
             : undefined;
 
-    const list = getFunctionList(inside || "", functions);
+    const nestedFunctionNames = getFunctionList(inside || "", functions);
 
-    functions.splice(0, list.length);
+    functions.splice(0, nestedFunctionNames.length);
 
-    let newinside = inside || "";
-    while (list.length) {
-        const func = list.shift() || "";
-        const funcData = getFunctionData(newinside, func, list);
+    let remainingInside = inside || "";
+    while (nestedFunctionNames.length) {
+        const nestedFunctionName = nestedFunctionNames.shift() || "";
+        const nestedFunctionData = getFunctionData(remainingInside, nestedFunctionName, nestedFunctionNames);
 
         inside = inside?.replace(
-            funcData.inside?.replaceAll(TranspilerCustoms.FSEP, ";") ?? "",
-            funcData.parsed,
+            nestedFunctionData.inside?.replaceAll(TranspilerCustoms.FSEP, ";") ?? "",
+            nestedFunctionData.parsed,
         );
-        newinside = newinside.replace(funcData.total, TranspilerCustoms.F);
+        remainingInside = remainingInside.replace(nestedFunctionData.total, TranspilerCustoms.F);
 
-        funcs.push(funcData);
+        funcs.push(nestedFunctionData);
     }
     const splits = inside?.split(";") || [];
     const parsed = inside?.replaceAll(";", TranspilerCustoms.FSEP);
@@ -338,7 +303,7 @@ export function getFunctionData(
         splits,
         funcs,
         parsed: parsed ?? "",
-        ...FuncD,
+        ...functionDefinition,
     };
 }
 export const functionFinderRegex = /(\$[a-z]+)/gi;
@@ -355,26 +320,26 @@ export const functionFinderRegex = /(\$[a-z]+)/gi;
  */
 
 export function getFunctionList(code: string, functions: string[]) {
-    const raws = code.match(functionFinderRegex);
-    if (!raws) return [];
-    const functionsThatExists = functions.filter((x) =>
-        code.toLowerCase().includes(x.toLowerCase()),
+    const rawMatches = code.match(functionFinderRegex);
+    if (!rawMatches) return [];
+    const matchingFunctions = functions.filter((candidate) =>
+        code.toLowerCase().includes(candidate.toLowerCase()),
     );
 
-    const res = [];
+    const foundFunctions = [];
 
-    for (const raw of raws) {
-        const func = functionsThatExists.filter(
-            (x) => x.toLowerCase() === raw.toLowerCase().slice(0, x.length),
+    for (const raw of rawMatches) {
+        const matchedFunction = matchingFunctions.filter(
+            (candidate) => candidate.toLowerCase() === raw.toLowerCase().slice(0, candidate.length),
         );
-        if (func.length === 1) res.push(func[0]);
-        else if (func.length > 1) {
-            res.push(func.sort((a, b) => b.length - a.length)[0]);
+        if (matchedFunction.length === 1) foundFunctions.push(matchedFunction[0]);
+        else if (matchedFunction.length > 1) {
+            foundFunctions.push(matchedFunction.sort((a, b) => b.length - a.length)[0]);
         } else {
             continue;
         }
     }
-    return res;
+    return foundFunctions;
 }
 
 /**
@@ -384,13 +349,13 @@ export function getFunctionList(code: string, functions: string[]) {
  */
 
 export function reverseArray(arr: funcData[]) {
-    const res: funcData[] = [];
+    const reversed: funcData[] = [];
     for (let i = arr.length - 1; i >= 0; i--) {
-        const el = arr[i];
-        if (el.funcs.length) el.funcs = reverseArray(arr[i].funcs);
-        res.push(el);
+        const element = arr[i];
+        if (element.funcs.length) element.funcs = reverseArray(arr[i].funcs);
+        reversed.push(element);
     }
-    return res;
+    return reversed;
 }
 
 /**
@@ -405,7 +370,7 @@ export function reverseArray(arr: funcData[]) {
  * } - Returns an object containing the reversed code and function data.
  * @example
  * ```js
- * Reverse("$ping", [{ inside: "", total: "$ping", splits: [], funcs: [], parsed: "$ping", type: "getter", code: [Function (anonymous)] }]) // { code: "$ping", funcs: [{ inside: "", total: "$ping", splits: [], funcs: [], parsed: "$ping", type: "getter", code: [Function (anonymous)] }] }
+ * Reverse("$ping", [{ inside: "", total: "$ping", splits: [], funcs: [], parsed: "$ping", type: FunctionType.Getter, code: [Function (anonymous)] }]) // { code: "$ping", funcs: [{ inside: "", total: "$ping", splits: [], funcs: [], parsed: "$ping", type: FunctionType.Getter, code: [Function (anonymous)] }] }
  * ```
  */
 
@@ -416,25 +381,25 @@ export function Reverse(
     code: string;
     funcs: funcData[];
 } {
-    let codeWithGenricFuncs = code;
+    let codeWithGenericFunctions = code;
 
-    for (const func of funcs) {
-        codeWithGenricFuncs = codeWithGenricFuncs.replace(
-            func.total,
+    for (const functionData of funcs) {
+        codeWithGenericFunctions = codeWithGenericFunctions.replace(
+            functionData.total,
             "#GENERIC-FUNCTION#",
         );
     }
 
     const reversedFuncs = reverseArray(funcs);
 
-    for (const func of reversedFuncs) {
-        codeWithGenricFuncs = codeWithGenricFuncs.replace(
+    for (const functionData of reversedFuncs) {
+        codeWithGenericFunctions = codeWithGenericFunctions.replace(
             "#GENERIC-FUNCTION#",
-            func.total,
+            functionData.total,
         );
     }
 
-    return { code: codeWithGenricFuncs, funcs: reversedFuncs };
+    return { code: codeWithGenericFunctions, funcs: reversedFuncs };
 }
 
 /**
@@ -451,7 +416,7 @@ export function Reverse(
  * } - Returns an object containing the generated js function and the scope.
  * @example
  * ```js
- * ExecuteData("$ping", [{ inside: "", total: "$ping", splits: [], funcs: [], parsed: "$ping", type: "getter", code: [Function (anonymous)] }], []) // { code: "__$DISCORD_DATA$__.client.ws.data.ping", scope: [] }
+ * ExecuteData("$ping", [{ inside: "", total: "$ping", splits: [], funcs: [], parsed: "$ping", type: FunctionType.Getter, code: [Function (anonymous)] }], []) // { code: "__$DISCORD_DATA$__.client.ws.data.ping", scope: [] }
  * ```
  */
 
@@ -470,22 +435,22 @@ export function ExecuteData(
         scope[0].rest = code;
     }
     while (i < data.length) {
-        let d = data[i];
+        let currentFunction = data[i];
 
-        const oldd = data[i].total;
-        if (d.type === "scope" || d.type === "scope_getter") {
-            const result = d.code(d, scope);
+        const previousTotal = data[i].total;
+        if (currentFunction.type === FunctionType.Scope || currentFunction.type === FunctionType.ScopeGetter) {
+            const result = currentFunction.code(currentFunction, scope);
             scope = result.scope;
-            d = <funcData>result.data;
+            currentFunction = <funcData>result.data;
 
-            code = code.replace(d.total, result.code.replaceAll("$", "$$$$"));
-            // .replace(d.total.replaceAll(";", "#FUNCTION_SEPARATOR#"), result.code);
-            if (d.type === "scope_getter") {
-                d.total = removeFF(d.total);
+            code = code.replace(currentFunction.total, result.code.replaceAll("$", "$$$$"));
+            // .replace(currentFunction.total.replaceAll(";", "#FUNCTION_SEPARATOR#"), result.code);
+            if (currentFunction.type === FunctionType.ScopeGetter) {
+                currentFunction.total = removeFF(currentFunction.total);
                 scope[scope.length - 1].sendData.content = scope[
                     scope.length - 1
                 ].sendData.content.replace(
-                    d.total,
+                    currentFunction.total,
                     result.code.replaceAll("$", "$$$$"),
                 );
             }
@@ -495,110 +460,110 @@ export function ExecuteData(
                 scope: Scope[];
             };
 
-            if (d.funcs.length) {
+            if (currentFunction.funcs.length) {
                 executed = ExecuteData(
-                    parseResult(d.inside ?? ""),
-                    d.funcs,
+                    parseResult(currentFunction.inside ?? ""),
+                    currentFunction.funcs,
                     scope,
                 );
 
                 scope = executed.scope;
 
-                const oldtotal = d.total;
+                const oldTotal = currentFunction.total;
 
-                d.total = d.total
+                currentFunction.total = currentFunction.total
                     .replace(
-                        d.inside ?? "",
+                        currentFunction.inside ?? "",
                         executed.code.replaceAll("$", "$$$$"),
                     )
                     .replace(
-                        d.inside?.replaceAll(TranspilerCustoms.FSEP, ";") ?? "",
+                        currentFunction.inside?.replaceAll(TranspilerCustoms.FSEP, ";") ?? "",
                         executed.code.replaceAll("$", "$$$$"),
                     );
 
                 code = code
-                    .replace(oldtotal, d.total.replaceAll("$", "$$$$"))
-                    .replace(oldd, d.total.replaceAll("$", "$$$$"));
+                    .replace(oldTotal, currentFunction.total.replaceAll("$", "$$$$"))
+                    .replace(previousTotal, currentFunction.total.replaceAll("$", "$$$$"));
 
-                d.inside = executed.code;
-                d.splits = d.inside.split(";");
+                currentFunction.inside = executed.code;
+                currentFunction.splits = currentFunction.inside.split(";");
 
-                const result = d.code(d, scope);
+                const result = currentFunction.code(currentFunction, scope);
 
                 code = code
-                    .replace(d.total, result.code.replaceAll("$", "$$$$"))
-                    // .replace(d.total.replaceAll(";", "#FUNCTION_SEPARATOR#"), result.code)
-                    .replace(oldd, result.code.replaceAll("$", "$$$$"));
+                    .replace(currentFunction.total, result.code.replaceAll("$", "$$$$"))
+                    // .replace(currentFunction.total.replaceAll(";", "#FUNCTION_SEPARATOR#"), result.code)
+                    .replace(previousTotal, result.code.replaceAll("$", "$$$$"));
 
-                if (d.type === "getter" || d.type === "function_getter") {
-                    let oldcontent = scope[scope.length - 1].sendData.content;
+                if (currentFunction.type === FunctionType.Getter || currentFunction.type === FunctionType.FunctionGetter) {
+                    let previousContent = scope[scope.length - 1].sendData.content;
                     scope[scope.length - 1].sendData.content = scope[
                         scope.length - 1
                     ].sendData.content.replace(
-                        d.total,
+                        currentFunction.total,
                         result.code.replaceAll("$", "$$$$"),
                     );
                     if (
-                        oldcontent === scope[scope.length - 1].sendData.content
+                        previousContent === scope[scope.length - 1].sendData.content
                     ) {
                         scope[scope.length - 1].sendData.content = scope[
                             scope.length - 1
                         ].sendData.content.replace(
-                            d.total.replaceAll(";", TranspilerCustoms.FSEP),
+                            currentFunction.total.replaceAll(";", TranspilerCustoms.FSEP),
                             result.code.replaceAll("$", "$$$$"),
                         );
-                        oldcontent = scope[scope.length - 1].sendData.content;
+                        previousContent = scope[scope.length - 1].sendData.content;
                     }
-                    if (oldcontent === scope[scope.length - 1].sendData.content)
+                    if (previousContent === scope[scope.length - 1].sendData.content)
                         scope[scope.length - 1].sendData.content = scope[
                             scope.length - 1
                         ].sendData.content.replace(
-                            oldd,
+                            previousTotal,
                             result.code.replaceAll("$", "$$$$"),
                         );
                 }
             } else {
-                executed = d.code(d, scope);
+                executed = currentFunction.code(currentFunction, scope);
                 scope = executed.scope;
 
                 code = code.replace(
-                    d.total,
+                    currentFunction.total,
                     executed.code.replaceAll("$", "$$$$"),
                 );
 
-                if (d.type === "getter" || d.type === "function_getter") {
-                    const oldt = d.total;
-                    const oldcontent = scope[scope.length - 1].sendData.content;
-                    d.total = removeFF(d.total);
+                if (currentFunction.type === FunctionType.Getter || currentFunction.type === FunctionType.FunctionGetter) {
+                    const oldTotal = currentFunction.total;
+                    const previousContent = scope[scope.length - 1].sendData.content;
+                    currentFunction.total = removeFF(currentFunction.total);
                     scope[scope.length - 1].sendData.content = scope[
                         scope.length - 1
                     ].sendData.content.replace(
-                        d.total,
+                        currentFunction.total,
                         executed.code.replaceAll("$", "$$$$"),
                     );
-                    if (oldcontent === scope[scope.length - 1].sendData.content)
+                    if (previousContent === scope[scope.length - 1].sendData.content)
                         scope[scope.length - 1].sendData.content = scope[
                             scope.length - 1
                         ].sendData.content.replace(
-                            oldt,
+                            oldTotal,
                             executed.code.replaceAll("$", "$$$$"),
                         );
                 }
             }
         }
         if (
-            d.type !== "getter" &&
-            d.type !== "function_getter" &&
-            d.type !== "scope_getter"
+            currentFunction.type !== FunctionType.Getter &&
+            currentFunction.type !== FunctionType.FunctionGetter &&
+            currentFunction.type !== FunctionType.ScopeGetter
         ) {
-            const s = scope[scope.length - 1];
-            const oldt = d.total;
-            const oldcontent = s.sendData.content;
-            d.total = removeFF(d.total);
-            s.sendData.content = s.sendData.content.replace(d.total, "");
-            if (oldcontent === s.sendData.content)
-                s.sendData.content = s.sendData.content.replace(oldt, "");
-            scope[scope.length - 1] = s;
+            const currentScope = scope[scope.length - 1];
+            const oldTotal = currentFunction.total;
+            const previousContent = currentScope.sendData.content;
+            currentFunction.total = removeFF(currentFunction.total);
+            currentScope.sendData.content = currentScope.sendData.content.replace(currentFunction.total, "");
+            if (previousContent === currentScope.sendData.content)
+                currentScope.sendData.content = currentScope.sendData.content.replace(oldTotal, "");
+            scope[scope.length - 1] = currentScope;
         }
         i++;
     }
@@ -606,60 +571,6 @@ export function ExecuteData(
         code,
         scope,
     };
-}
-
-/**
- * uh idk what this does
- * @param {string} text - The text to parse.
- * @returns {string} - Returns the parsed text.
- */
-export function _parseString(text: string) {
-    const reg =
-        /((#FUNCTION_START#([\s$a-z.0-9?(){}[\]._:'"`;=><,!-]|\n)+#FUNCTION_END#)|(__\$[a-z_?.()]+\$__))/gim;
-    let matches = text.match(reg);
-    const functionlist = matches?.slice(1) ?? [];
-    functionlist;
-
-    let temptext = text;
-
-    if (matches) {
-        matches = <RegExpMatchArray>matches.reverse();
-        let i = 0;
-        let u = 0;
-        while (i < (matches?.length ?? 0)) {
-            const match = <string>matches?.[i];
-            const position = temptext.indexOf(match);
-            const part = temptext.slice(position, position + match.length);
-            const temppart = parseResult(part);
-
-            temptext = `${temptext.slice(0, position)}${`__$${u
-                .toString()
-                .repeat(temppart.length - 3)}$__`}${temptext.slice(
-                position + part.length,
-                text.length,
-            )}`;
-            text = `${text.slice(0, position)}\${${temppart}}${text.slice(
-                position + part.length,
-                text.length,
-            )}`;
-
-            matches = <RegExpMatchArray>(temptext.match(reg)?.reverse() ?? []);
-            i = 0;
-            u++;
-        }
-        matches = <RegExpMatchArray>(
-            (text.match(/__\$[0-9]+\$__/gi)?.reverse() ?? [])
-        );
-
-        matches?.forEach((x, y) => {
-            text = text.replace(x, `\${${parseResult(functionlist[y])}}`);
-        });
-
-        text = `\`${text}\``;
-    } else {
-        text = `\`${text}\``;
-    }
-    return text;
 }
 
 /**
@@ -675,7 +586,7 @@ export function _parseString(text: string) {
  * ```
  */
 export function convertToBool(output: string) {
-    return output === "true" || output === "yes" ? true : false;
+    return output === "true" || output === "yes";
 }
 
 /**
@@ -721,7 +632,7 @@ export function removeMF(total: string) {
 
 /**
  * Checks if the given string is a bigint.
- * @param {string} string - The string to check.
+ * @param {string} value - The string to check.
  * @returns {boolean} - Returns true if the string is a bigint, false otherwise.
  * @example
  * ```js
@@ -730,8 +641,8 @@ export function removeMF(total: string) {
  * ```
  */
 
-export function isBigInt(string: string) {
-    return string.match(/^-?\d+n$/) !== null;
+export function isBigInt(value: string) {
+    return value.match(/^-?\d+n$/) !== null;
 }
 
 /**

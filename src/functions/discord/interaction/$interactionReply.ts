@@ -8,10 +8,11 @@ import {
 } from "../../../util/transpilerHelpers.js";
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { InteractionResponseTypes, Snowflake } from "zeneth";
+import { FunctionType } from "../../../typings/enums.js";
 
 const interactionReply = new AoiJSFunction()
     .setName("$interactionReply")
-    .setType("scope")
+    .setType(FunctionType.Scope)
     .setBrackets(true)
     .setOptional(false)
     .setFields([

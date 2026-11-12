@@ -1,15 +1,18 @@
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { StringObject, parseStringObject } from "../../../index.js";
 import Scope from "../../../core/structs/Scope.js";
-import { FunctionData, funcData } from "../../../typings/interfaces.js";
+import { funcData } from "../../../typings/interfaces.js";
 import {
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
-export const $useComponent: FunctionData = {
-    name: "$useComponent",
-    brackets: true,
-    optional: false,
-    type: "function_getter",
-    fields: [
+import { FunctionType } from "../../../typings/enums.js";
+
+const useComponent = new AoiJSFunction()
+    .setName("$useComponent")
+    .setType(FunctionType.FunctionGetter)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([
         {
             name: "name",
             type: "string",
@@ -22,35 +25,37 @@ export const $useComponent: FunctionData = {
             description: "The data to pass to the component",
             required: false,
         },
-    ],
-    description: "use a component in the code",
-    default: ["void", "undefined"],
-    returns: "any",
-    version: "7.0.0",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["void", "undefined"])
+    .setReturns("any")
+    .setDescription("use a component in the code")
+    .setExample(`
         $useComponent[hello;{hello: world}] // executes the component hello with the data {hello: world}
-    `,
-    code: (data: funcData, scope: Scope[]) => {
-        const currentScope = scope.at(-1) as Scope;
-        //code here
+    `);
 
-        const [name,...rest] = data.splits;
-        const actualRestData = rest.join(";");
+useComponent.setCode((data: funcData, scope: Scope[], thisArg) => {
+    const currentScope = thisArg.getCurrentScope(scope);
+    //code here
 
-        const currentObj = new StringObject("{");
-        currentObj.addEnd("}");
+    const [name,...rest] = data.splits;
+    const actualRestData = rest.join(";");
 
-        const obj = parseStringObject(actualRestData, currentObj);
+    const currentObj = new StringObject("{");
+    currentObj.addEnd("}");
 
-        const res= escapeResult(`
+    const obj = parseStringObject(actualRestData, currentObj);
+
+    const res= escapeResult(`
          ${currentScope.client.returnComponent(name,obj.solve())}
           `
-        );
+    );
 
-        currentScope.update(res, data);
-        return {
-            code: res,
-            scope,
-        };
-    },
-};
+    currentScope.update(res, data);
+    return {
+        code: res,
+        scope,
+    };
+}, useComponent);
+
+export const $useComponent = useComponent.build();

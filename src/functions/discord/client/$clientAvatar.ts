@@ -3,10 +3,11 @@ import { Scope } from "../../../index.js";
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspiledFuncData, funcData } from "../../../typings/interfaces.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
 const clientAvatar = new AoiJSFunction()
     .setName("$clientAvatar")
-    .setType("getter")
+    .setType(FunctionType.Getter)
     .setBrackets(true)
     .setOptional(true)
     .setFields([

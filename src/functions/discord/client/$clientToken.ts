@@ -1,9 +1,10 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
 const clientToken = new AoiJSFunction()
     .setName("$clientToken")
-    .setType("getter")
+    .setType(FunctionType.Getter)
     .setBrackets(false)
     .setOptional(false)
     .setFields([])

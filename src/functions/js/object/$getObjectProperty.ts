@@ -1,16 +1,19 @@
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError } from "../../../core/error.js";
 import Scope from "../../../core/structs/Scope.js";
-import { FunctionData, funcData } from "../../../typings/interfaces.js";
+import { funcData } from "../../../typings/interfaces.js";
 import {
     escapeResult,
     escapeVars,
 } from "../../../util/transpilerHelpers.js";
-export const $getObjectProperty: FunctionData = {
-    name: "$getObjectProperty",
-    brackets: true,
-    optional: false,
-    type: "getter",
-    fields: [
+import { FunctionType } from "../../../typings/enums.js";
+
+const getObjectProperty = new AoiJSFunction()
+    .setName("$getObjectProperty")
+    .setType(FunctionType.Getter)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([
         {
             name: "name",
             type: "string",
@@ -23,33 +26,35 @@ export const $getObjectProperty: FunctionData = {
             description: "The key of the property to get",
             required: true,
         },
-    ],
-    version: "7.0.0",
-    description: "gets the value of the key in the object",
-    default: ["void", "void"],
-    returns: "void",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["void", "void"])
+    .setReturns("void")
+    .setDescription("gets the value of the key in the object")
+    .setExample(`
         $createObject[object;{key:value}]
         $getObjectProperty[object;key] // returns value
-    `,
-    code: (data: funcData, scope: Scope[]) => {
-        const currentScope = scope[scope.length - 1];
-        const [name, key ] = data.splits;
+    `);
 
-        if (
-            !currentScope.objects[name] &&
+getObjectProperty.setCode((data: funcData, scope: Scope[], thisArg) => {
+    const currentScope = thisArg.getCurrentScope(scope);
+    const [name, key ] = data.splits;
+
+    if (
+        !currentScope.objects[name] &&
             !currentScope.name.startsWith("$try_") &&
             !currentScope.name.startsWith("$catch_")
-        ) {
-            throw new TranspilerError(
-                `${data.name}: Invalid Object Name Provided`,
-            );
-        }
-        const res = escapeResult(`${escapeVars(name)}.${key}`);
-        currentScope.update(res, data);
-        return {
-            code: res,
-            scope,
-        };
-    },
-};
+    ) {
+        throw new TranspilerError(
+            `${data.name}: Invalid Object Name Provided`,
+        );
+    }
+    const res = escapeResult(`${escapeVars(name)}.${key}`);
+    currentScope.update(res, data);
+    return {
+        code: res,
+        scope,
+    };
+}, getObjectProperty);
+
+export const $getObjectProperty = getObjectProperty.build();

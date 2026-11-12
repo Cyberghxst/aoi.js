@@ -1,14 +1,15 @@
-import { FunctionData } from "../../../typings/interfaces.js";
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import {
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
-export const $authorAvatar: FunctionData = {
-    name: "$authorAvatar",
-    type: "getter",
-    brackets: false,
-    optional: true,
-    fields: [
+const authorAvatar = new AoiJSFunction()
+    .setName("$authorAvatar")
+    .setType(FunctionType.Getter)
+    .setBrackets(false)
+    .setOptional(true)
+    .setFields([
         {
             name: "size",
             type: "number",
@@ -27,28 +28,30 @@ export const $authorAvatar: FunctionData = {
             description: "The format of the avatar",
             required: false,
         }
-    ],
-    version: "7.0.0",
-    default: ["1024", "true", "'png'"],
-    returns: "string",
-    description: "Returns the avatar of the author",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["1024", "true", "'png'"])
+    .setReturns("string")
+    .setDescription("Returns the avatar of the author")
+    .setExample(`
         $authorAvatar // returns the avatar of the author
 
         $authorAvatar[4096;true;png] // returns the avatar of the author with size 4096, dynamic true and format png
-    `,
-    code: (data, scope) => {
-        const currentScope = scope[scope.length - 1];
+    `);
 
-        const [size=1024,dynamic=true,format="'png'"] = data.splits;
+authorAvatar.setCode((data, scope, thisArg) => {
+    const currentScope = thisArg.getCurrentScope(scope);
 
-        const avatar = `__$DISCORD_DATA$__.author?.avatarUrl({size: ${size}, dynamic: ${dynamic}, format: ${format} })`;
+    const [size=1024,dynamic=true,format="'png'"] = data.splits;
 
-        const res = escapeResult(`(${avatar})`);
-        currentScope.update(res, data);
-        return {
-            code: res,
-            scope,
-        };
-    },
-};
+    const avatar = `__$DISCORD_DATA$__.author?.avatarUrl({size: ${size}, dynamic: ${dynamic}, format: ${format} })`;
+
+    const res = escapeResult(`(${avatar})`);
+    currentScope.update(res, data);
+    return {
+        code: res,
+        scope,
+    };
+}, authorAvatar);
+
+export const $authorAvatar = authorAvatar.build();

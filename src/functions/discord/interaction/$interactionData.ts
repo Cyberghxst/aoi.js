@@ -1,9 +1,10 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
 const interactionData = new AoiJSFunction()
     .setName("$interactionData")
-    .setType("getter")
+    .setType(FunctionType.Getter)
     .setBrackets(true)
     .setOptional(true)
     .setFields([

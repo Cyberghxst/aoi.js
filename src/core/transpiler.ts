@@ -13,25 +13,39 @@ import fixMath from "./parsers/mathParser.js";
 import Scope from "./structs/Scope.js";
 import { AsyncFunction } from "../typings/types.js";
 
+/**
+ * Transpiles aoi.js user code (`$function[...]` calls and plain text) into
+ * an executable async function.
+ *
+ * The code is wrapped in a `$EXECUTEMAINCODEFUNCTION[...]` scope so the
+ * whole command is treated as one function, each `$function` is parsed and
+ * executed to generate JavaScript, the result is minified (unless disabled)
+ * and evaluated into an `AsyncFunction` that sends the final message when
+ * called with the Discord data.
+ *
+ * @param code - The raw user code to transpile.
+ * @param options - Transpiler options (scope data, client, minify flag...).
+ * @returns The executable function, the generated code, and the scopes.
+ */
 export function Transpiler(
     code: string,
     options: TranspilerOptions,
 ): { func: AsyncFunction; code: string; scope: Scope[] } {
-    const { scopeData, sendMessage, minify: uglify, customFunctions } = options;
+    const { scopeData, sendMessage, minify: shouldMinify, customFunctions } = options;
     const functions = { ...funcs, ...customFunctions };
     const functionNames = Object.keys(functions);
-    const flist = getFunctionList(code, functionNames);
+    const functionList = getFunctionList(code, functionNames);
 
-    flist.forEach((x) => {
-        const reg = new RegExp(`${x.replace("$", "\\$")}`, "gi");
+    functionList.forEach((functionName) => {
+        const namePattern = new RegExp(`${functionName.replace("$", "\\$")}`, "gi");
         code = parseResult(code);
-        code = code.replace(reg, x);
+        code = code.replace(namePattern, functionName);
     });
 
-    const tempcode = `$EXECUTEMAINCODEFUNCTION[
+    const wrappedCode = `$EXECUTEMAINCODEFUNCTION[
         ${code}
     ]`;
-    const FData = getFunctionData(tempcode, "$EXECUTEMAINCODEFUNCTION", flist);
+    const mainFunctionData = getFunctionData(wrappedCode, "$EXECUTEMAINCODEFUNCTION", functionList);
     const globalScope = new Scope(
         scopeData?.name ?? "global",
         options.client,
@@ -46,36 +60,35 @@ export function Transpiler(
     globalScope.sendFunction =
         scopeData?.sendFunction ?? globalScope.sendFunction;
     globalScope.useChannel = scopeData?.useChannel;
-    const res = ExecuteData(
+    const executionResult = ExecuteData(
         parseResult(code),
-        FData.funcs,
+        mainFunctionData.funcs,
         [globalScope],
         options.reverse ?? false,
     );
 
-    if (res.scope[0].sendData.content.trim() !== "") {
-        const scope = res.scope[0];
-        scope.hasSendData = true;
-        // scope.rest = scope.rest.replace(scope.sendData.content.trim(), "");
-        scope.rest = scope.replaceLast(scope.rest,scope.sendData.content.trim(), "");
-        res.scope[0] = scope;
+    if (executionResult.scope[0].sendData.content.trim() !== "") {
+        const mainScope = executionResult.scope[0];
+        mainScope.hasSendData = true;
+        mainScope.rest = mainScope.replaceLast(mainScope.rest, mainScope.sendData.content.trim(), "");
+        executionResult.scope[0] = mainScope;
     }
-    res.scope[0].updateEmbedJs();
+    executionResult.scope[0].updateEmbedJs();
 
-    let str = res.scope[0].getFunction(sendMessage);
-    str = fixMath(str);
+    let generatedCode = executionResult.scope[0].getFunction(sendMessage);
+    generatedCode = fixMath(generatedCode);
 
     // eslint-disable-next-line @typescript-eslint/ban-types
-    const functionString = uglify ? minify(str) : str;
+    const functionString = shouldMinify ? minify(generatedCode) : generatedCode;
 
-    if (uglify && (<MinifyOutput>functionString).error) {
+    if (shouldMinify && (<MinifyOutput>functionString).error) {
         throw new TranspilerError(
             `
       Failed To Transpile Code with error ${
     (<MinifyOutput>functionString).error
 }`,
             {
-                code: str,
+                code: generatedCode,
                 cmd: options.command?.name,
                 path: options.command?.__path__,
             },
@@ -85,26 +98,26 @@ export function Transpiler(
 
     if (options.parsedStringOnly)
         return {
-            code: uglify
+            code: shouldMinify
                 ? (<MinifyOutput>functionString).code
                 : <string>functionString,
             func: async () => {
                 return void 0;
             },
-            scope: res.scope,
+            scope: executionResult.scope,
         };
     try {
-        const strr = uglify
+        const codeToEvaluate = shouldMinify
             ? (<MinifyOutput>functionString).code
             : <string>functionString;
-        func = eval(`const f = ${strr}; f`) as AsyncFunction;
-    } catch (e) {
-        throw new TranspilerError(e as string , {
-            code: str,
+        func = eval(`const f = ${codeToEvaluate}; f`) as AsyncFunction;
+    } catch (error) {
+        throw new TranspilerError(error as string, {
+            code: generatedCode,
             cmd: options.command?.name,
             path: options.command?.__path__,
         });
     }
 
-    return { func, ...res };
+    return { func, ...executionResult };
 }

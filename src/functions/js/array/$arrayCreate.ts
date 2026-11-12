@@ -1,18 +1,21 @@
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError } from "../../../core/error.js";
 import Scope from "../../../core/structs/Scope.js";
 import { StringObject, parseStringObject } from "../../../index.js";
-import { FunctionData, funcData } from "../../../typings/interfaces.js";
+import { funcData } from "../../../typings/interfaces.js";
 import {
     escapeResult,
     escapeVars,
     parseData,
 } from "../../../util/transpilerHelpers.js";
-export const $arrayCreate: FunctionData = {
-    name: "$arrayCreate",
-    brackets: true,
-    optional: false,
-    type: "setter",
-    fields: [
+import { FunctionType } from "../../../typings/enums.js";
+
+const arrayCreate = new AoiJSFunction()
+    .setName("$arrayCreate")
+    .setType(FunctionType.Setter)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([
         {
             name: "name",
             type: "string",
@@ -25,46 +28,48 @@ export const $arrayCreate: FunctionData = {
             description: "The values to create the array with",
             required: true,
         },
-    ],
-    description: "creates an array with the specified values",
-    default: ["void", "void"],
-    returns: "void",
-    version: "7.0.0",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["void", "void"])
+    .setReturns("void")
+    .setDescription("creates an array with the specified values")
+    .setExample(`
         $arrayCreate[myArray;hello;world;nya]
         $arrayCreate[myNextArray;1;2;3]
-    `,
-    code: (data: funcData, scope: Scope[]) => {
-        const [name, ...values] = data.splits;
-        const currentScope = scope[scope.length - 1];
-        if (
-            currentScope.objects[name] &&
+    `);
+
+arrayCreate.setCode((data: funcData, scope: Scope[], thisArg) => {
+    const [name, ...values] = data.splits;
+    const currentScope = thisArg.getCurrentScope(scope);
+    if (
+        currentScope.objects[name] &&
             !currentScope.name.startsWith("$try_") &&
             !currentScope.name.startsWith("$catch_")
-        )
-            throw new TranspilerError(
-                `${data.name}: Variable ${name} already exists`,
-            );
-        const parsedValues = values.map((v) => parseData(v));
-        const currentObj = new StringObject("[");
-        currentObj.addEnd("]");
-
-        const array = parseStringObject(
-            `[${parsedValues.join(" , ")}]`,
-            currentObj,
+    )
+        throw new TranspilerError(
+            `${data.name}: Variable ${name} already exists`,
         );
+    const parsedValues = values.map((v) => parseData(v));
+    const currentObj = new StringObject("[");
+    currentObj.addEnd("]");
 
-        currentScope.objects[name] = <StringObject>array;
-        currentScope.variables.push(name);
+    const array = parseStringObject(
+        `[${parsedValues.join(" , ")}]`,
+        currentObj,
+    );
 
-        const res = escapeResult(
-            `const ${escapeVars(name)} = ${array.solve()};`,
-        );
-        currentScope.update(res, data);
+    currentScope.objects[name] = <StringObject>array;
+    currentScope.variables.push(name);
 
-        return {
-            code: "",
-            scope,
-        };
-    },
-};
+    const res = escapeResult(
+        `const ${escapeVars(name)} = ${array.solve()};`,
+    );
+    currentScope.update(res, data);
+
+    return {
+        code: "",
+        scope,
+    };
+}, arrayCreate);
+
+export const $arrayCreate = arrayCreate.build();

@@ -1,14 +1,15 @@
-import { FunctionData } from "../../../typings/interfaces.js";
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import {
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
-export const $userAvatar: FunctionData = {
-    name: "$userAvatar",
-    type: "getter",
-    brackets: true,
-    optional: false,
-    fields: [
+const userAvatar = new AoiJSFunction()
+    .setName("$userAvatar")
+    .setType(FunctionType.Getter)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([
         {
             name: "user",
             type: "bigint",
@@ -31,33 +32,35 @@ export const $userAvatar: FunctionData = {
             description: "The format of the avatar",
             required: false,
         }
-    ],
-    version: "7.0.0",
-    default: [
+    ])
+    .setVersion("7.0.0")
+    .setDefault([
         "void",
         "1024",
         "true",
         "'png'",
-    ],
-    returns: "string",
-    description: "Returns the avatar of the user",
-    example: `
+    ])
+    .setReturns("string")
+    .setDescription("Returns the avatar of the user")
+    .setExample(`
         $userAvatar // returns the avatar of the user
 
         $userAvatar[123456789012345678n;4096;true;png] // returns the avatar of the user with size 4096, dynamic true and format png
-    `,
-    code: (data, scope) => {
-        const currentScope = scope[scope.length - 1];
+    `);
 
-        const [id,size=1024,dynamic=true,format="'png'"] = data.splits;
+userAvatar.setCode((data, scope, thisArg) => {
+    const currentScope = thisArg.getCurrentScope(scope);
 
-        const avatar = `(await __$DISCORD_DATA$__.bot.util.getUser(${id}))?.avatarUrl({size: ${size}, dynamic: ${dynamic}, format: ${format} }`;
+    const [id,size=1024,dynamic=true,format="'png'"] = data.splits;
 
-        const res = escapeResult(`${avatar}`);
-        currentScope.update(res, data);
-        return {
-            code: res,
-            scope,
-        };
-    },
-};
+    const avatar = `(await __$DISCORD_DATA$__.bot.util.getUser(${id}))?.avatarUrl({size: ${size}, dynamic: ${dynamic}, format: ${format} }`;
+
+    const res = escapeResult(`${avatar}`);
+    currentScope.update(res, data);
+    return {
+        code: res,
+        scope,
+    };
+}, userAvatar);
+
+export const $userAvatar = userAvatar.build();

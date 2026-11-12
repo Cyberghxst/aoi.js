@@ -6,6 +6,18 @@ import fs, { readFile } from "fs/promises";
 import { AoiClient, Bundler } from "../index.js";
 import Path from "path";
 
+/** Result of attempting to load a single command file, shown in the load report. */
+interface CommandLoadResult {
+    path: string;
+    loaded: boolean;
+    reason?: string;
+}
+
+/**
+ * Holds every registered command, grouped by type, and loads command
+ * files from disk. Commands are stored in insertion order so they run
+ * in the order they were registered.
+ */
 export class CommandManager {
     basic: Group<number, Command> = new Group<number, Command>(Infinity);
     interaction: Group<number, Command> = new Group<number, Command>(Infinity);
@@ -16,16 +28,26 @@ export class CommandManager {
     constructor(client: AoiClient) {
         this.#client = client;
     }
+
+    /** Whether the given type has its own numbered group (component commands are keyed by name instead). */
     isValidType(type: string) {
         return ["basic", "interaction", "ready", "debug"].includes(type);
     }
+
+    /** The numbered command groups, in the order their helpers are created on the client. */
     get types() {
         return ["basic", "interaction", "ready", "debug"];
     }
 
+    /** Every command type, including the name-keyed component group. */
     static cmdTypes() {
         return ["basic", "interaction", "ready", "debug", "component"];
     }
+
+    /**
+     * Validates and registers one command. The path defaults to "root"
+     * for commands created in code rather than loaded from a file.
+     */
     add(command: Optional<CommandOptions, "__path__">) {
         if (!command.name) throw new Error("Command name is required");
         if (!command.type) throw new Error("Command type is required");
@@ -46,9 +68,21 @@ export class CommandManager {
         }
     }
 
+    /** Registers several commands in order. */
     addMany(commands: Optional<CommandOptions, "__path__">[]) {
         for (const command of commands) this.add(command);
     }
+
+    /**
+     * Recursively loads command files from a directory and prints a
+     * table of what loaded and what failed. A single bad file is
+     * recorded in the report instead of aborting the whole load, so
+     * one broken command cannot keep the rest from registering.
+     *
+     * @param path - Directory (or file) to load from.
+     * @param usingAoi - When true, load `.aoi` script files through the
+     * Bundler instead of importing `.js` modules.
+     */
     async load({
         path,
         usingAoi = false,
@@ -59,8 +93,7 @@ export class CommandManager {
         const chalk = (await import("chalk")).default;
         const boxen = (await import("boxen")).default;
         const stats = await fs.stat(path);
-        const Commands: { path: string; loaded: boolean; reason?: string }[] =
-            [];
+        const loadResults: CommandLoadResult[] = [];
         if (!usingAoi) {
             if (stats.isDirectory()) {
                 const files = await fs.readdir(path);
@@ -74,7 +107,6 @@ export class CommandManager {
                         file.endsWith(".js") &&
                         !file.endsWith(".template.js")
                     ) {
-                        // importing on windows
                         let command;
                         try {
                             command = await this.loadFile(filePath);
@@ -82,13 +114,13 @@ export class CommandManager {
                                 this.addMany(command.default);
                             } else this.add(command.default);
 
-                            Commands.push({
+                            loadResults.push({
                                 path: <string>filePath.split("/").pop(),
                                 loaded: true,
                             });
                         } catch (e) {
-                            /* empty */
-                            Commands.push({
+                            // A failed file is reported, not thrown, so loading continues with the rest.
+                            loadResults.push({
                                 path: <string>filePath.split("/").pop(),
                                 loaded: false,
                                 reason: e as string,
@@ -115,28 +147,24 @@ export class CommandManager {
                             const cmd = Bundler(command, this.#client).command;
                             cmd.__path__ = filePath;
                             this.add(cmd as unknown as CommandOptions);
-                            Commands.push({
+                            loadResults.push({
                                 path: <string>filePath.split("/").pop(),
                                 loaded: true,
                             });
                         } catch (e) {
-                            /* empty */
-                            Commands.push({
+                            // A failed file is reported, not thrown, so loading continues with the rest.
+                            loadResults.push({
                                 path: <string>filePath.split("/").pop(),
                                 loaded: false,
                                 reason: e as string,
                             });
                         }
                     }
-                    // else if(stats.isFile() && file.endsWith(".aoi") && !file.endsWith(".template.aoi")) {
-                    //     const command = await import(filePath);
-                    //     this.add(command.default);
-                    // }
                 }
             }
         }
         const box = boxen(
-            `${Commands.map((cmd) => {
+            `${loadResults.map((cmd) => {
                 return `∷ ${chalk.cyanBright(
                     cmd.loaded ? "Loaded" : "Failed",
                 )} ${chalk.greenBright(cmd.path)} ${chalk.redBright(
@@ -147,7 +175,7 @@ export class CommandManager {
             {
                 title: `∴ Loading ${chalk.blueBright(
                     path,
-                )} ( ${chalk.yellowBright(Commands.length)} )`,
+                )} ( ${chalk.yellowBright(loadResults.length)} )`,
                 borderStyle: "round",
                 borderColor: "cyan",
                 textAlignment: "left",
@@ -162,6 +190,10 @@ export class CommandManager {
         console.log(box);
     }
 
+    /**
+     * Runs every command of the given type whose filter matches.
+     * Commands run one after another, in registration order.
+     */
     async exec({
         type,
         data,
@@ -171,13 +203,19 @@ export class CommandManager {
         data: TranspiledFuncData;
         filter: (cmd: Command) => boolean;
     }) {
-        const cmd = this[type].filter((cmd) => filter(cmd));
-        if (cmd.size) {
-            for (const command of cmd.values()) {
+        const matchingCommands = this[type].filter((cmd) => filter(cmd));
+        if (matchingCommands.size) {
+            for (const command of matchingCommands.values()) {
                 await command.__compiled__({ ...data, command });
             }
         }
     }
+
+    /**
+     * Imports a command module. Falls back to a file URL import on
+     * Windows, where a plain path import is rejected, and to an
+     * absolute-path import elsewhere when `require` is unavailable.
+     */
     async loadFile(filePath: string) {
         let command;
         try {

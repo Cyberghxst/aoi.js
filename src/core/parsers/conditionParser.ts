@@ -1,52 +1,46 @@
 import Condition from "../structs/Condition.js";
-export const operators = ["===", "!==", "==", "!=", ">", "<", ">=", "<="];
 
-export function countSBrackets(condition: string) {
-    const sBrackets = condition.match(/\(/g);
-    const eBrackets = condition.match(/\)/g);
-    return {
-        right: sBrackets ? sBrackets.length : 0,
-        left: eBrackets ? eBrackets.length : 0,
-    };
-}
-export function areSBracketsBalanced(condition: string) {
-    const { left, right } = countSBrackets(condition);
-    return left === right;
-}
+/**
+ * Splits a condition string into a tree of nested {@link Condition}s.
+ *
+ * Parentheses already consumed by a generated function call are masked first
+ * (as `#SMOOTH_BRACKET_LEFT#` / `#SMOOTH_BRACKET_RIGHT#`) so the lexer only
+ * splits on grouping parentheses that belong to the condition itself.
+ */
 export function conditionLexer(condition: string) {
-    let tempCondition;
+    let conditionToLex;
     if (condition.includes("#FUNCTION_START#")) {
         const matches = condition.match(
             /((#FUNCTION_START#([$a-z.0-9\s?(){}[\]._:'"`;=><,!-]|\n)+#FUNCTION_END#)|(__\$[a-z_?.()]+\$__))/gim,
         );
         if (matches) {
             for (const match of matches) {
-                const newmatch = match
+                const sanitizedMatch = match
                     .replaceAll("(", "#SMOOTH_BRACKET_LEFT#")
                     .replaceAll(")", "#SMOOTH_BRACKET_RIGHT#");
-                condition = condition.replace(match, newmatch);
+                condition = condition.replace(match, sanitizedMatch);
             }
-            tempCondition = condition;
+            conditionToLex = condition;
         }
-        tempCondition = condition;
+        conditionToLex = condition;
     } else {
-        tempCondition = condition;
+        conditionToLex = condition;
     }
     let i = 0;
-    let starter = new Condition("");
-    while (i < tempCondition.length) {
-        if (tempCondition[i] === "(") {
-            const nest = new Condition("", starter);
-            starter.add("#CONDITION#");
-            starter.nest.push(nest);
-            starter = nest;
-        } else if (tempCondition[i] === ")") {
-            if (starter.parent) starter = starter.parent;
+    let currentCondition = new Condition("");
+    while (i < conditionToLex.length) {
+        if (conditionToLex[i] === "(") {
+            const nestedCondition = new Condition("", currentCondition);
+            currentCondition.add("#CONDITION#");
+            currentCondition.nest.push(nestedCondition);
+            currentCondition = nestedCondition;
+        } else if (conditionToLex[i] === ")") {
+            if (currentCondition.parent) currentCondition = currentCondition.parent;
             else break;
         } else {
-            starter.add(tempCondition[i]);
+            currentCondition.add(conditionToLex[i]);
         }
         i++;
     }
-    return starter;
+    return currentCondition;
 }

@@ -1,36 +1,39 @@
-import Scope  from "../../../core/structs/Scope.js";
-import { funcData, FunctionData } from "../../../typings/interfaces.js";
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
+import Scope from "../../../core/structs/Scope.js";
+import { funcData } from "../../../typings/interfaces.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
-export const $comment: FunctionData = {
-    name: "$comment",
-    type: "scope",
-    brackets: true,
-    optional: false,
-    version: "7.0.0",
-    fields: [
+const comment = new AoiJSFunction()
+    .setName("$comment")
+    .setType(FunctionType.Scope)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([
         {
             name: "comment",
             type: "string",
             description: "The comment to convert",
             required: true,
         },
-    ],
-    default: ["void"],
-    returns: "void",
-    description: "Converts provided code to a comment",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["void"])
+    .setReturns("void")
+    .setDescription("Converts provided code to a comment")
+    .setExample(`
         $comment[hello world] // returns /*hello world*/
-    `,
-    code: (data: funcData, scope: Scope[]) => {
-        const comment = data.inside;
-        const currentScope = scope[scope.length - 1];
-        const res = escapeResult(``);
-        currentScope.update( res, data );
-        return {
-            code: res,
-            scope: scope,
-            data: data,
-        };
-    },
-};
+    `);
+
+comment.setCode((data: funcData, scope: Scope[], thisArg) => {
+    const currentScope = thisArg.getCurrentScope(scope);
+    const res = escapeResult("");
+    currentScope.update( res, data );
+    return {
+        code: res,
+        scope: scope,
+        data: data,
+    };
+}, comment);
+
+export const $comment = comment.build();

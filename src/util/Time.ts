@@ -1,8 +1,8 @@
-const compare = (a: { order: number }, b: { order: number }) => {
-    if (a.order < b.order) {
+const compare = (first: { order: number }, second: { order: number }) => {
+    if (first.order < second.order) {
         return -1;
     }
-    if (a.order > b.order) {
+    if (first.order > second.order) {
         return 1;
     }
     return 0;
@@ -11,6 +11,15 @@ const compare = (a: { order: number }, b: { order: number }) => {
 const pluralize = (num: number, txt: string, suffix = "s") =>
     `${num} ${txt}${num !== 1 ? suffix : ""}`;
 
+/**
+ * Parses a duration into milliseconds and a human-readable string.
+ *
+ * Accepts either a millisecond count or a string of space-separated parts
+ * such as `"1h 30min"`. Each unit may appear at most once: repeated units
+ * overwrite each other because they share one map entry.
+ * @param time - Milliseconds, or a string like `"2d 3h"`.
+ * @returns The total milliseconds and the formatted duration.
+ */
 export function parse(time: string | number) {
     if (!["string", "number"].includes(typeof time))
         throw TypeError("'time' must be a string or number");
@@ -20,88 +29,93 @@ export function parse(time: string | number) {
             format: format(time).toString(),
         };
     else {
-        const Hash = new Map();
+        const timeUnits = new Map();
 
-        time.split(" ").forEach((x) => {
-            if (x.endsWith("y"))
-                Hash.set("y", {
-                    format: pluralize(Number(x.split("y")[0]), "year"),
-                    ms: Number(x.split("y")[0]) * 31536000000,
+        time.split(" ").forEach((part) => {
+            if (part.endsWith("y"))
+                timeUnits.set("y", {
+                    format: pluralize(Number(part.split("y")[0]), "year"),
+                    ms: Number(part.split("y")[0]) * 31536000000,
                     order: 1,
                 });
-            if (x.endsWith("mon") || x.endsWith("M"))
-                Hash.set("mon", {
+            if (part.endsWith("mon") || part.endsWith("M"))
+                timeUnits.set("mon", {
                     format: pluralize(
-                        Number(x.split("mon")[0].split("M")[0]),
+                        Number(part.split("mon")[0].split("M")[0]),
                         "month",
                     ),
-                    ms: Number(x.split("mon")[0].split("M")[0]) * 2628002880,
+                    ms: Number(part.split("mon")[0].split("M")[0]) * 2628002880,
                     order: 2,
                 });
-            if (x.endsWith("w"))
-                Hash.set("w", {
-                    format: pluralize(Number(x.split("w")[0]), "week"),
-                    ms: Number(x.split("w")[0]) * 604800000,
+            if (part.endsWith("w"))
+                timeUnits.set("w", {
+                    format: pluralize(Number(part.split("w")[0]), "week"),
+                    ms: Number(part.split("w")[0]) * 604800000,
                     order: 3,
                 });
-            if (x.endsWith("d"))
-                Hash.set("d", {
-                    format: pluralize(Number(x.split("d")[0]), "day"),
-                    ms: Number(x.split("d")[0]) * 86400000,
+            if (part.endsWith("d"))
+                timeUnits.set("d", {
+                    format: pluralize(Number(part.split("d")[0]), "day"),
+                    ms: Number(part.split("d")[0]) * 86400000,
                     order: 4,
                 });
-            if (x.endsWith("h") || x.endsWith("hr"))
-                Hash.set("h", {
+            if (part.endsWith("h") || part.endsWith("hr"))
+                timeUnits.set("h", {
                     format: pluralize(
-                        Number(x.split("h")[0].split("hr")[0]),
+                        Number(part.split("h")[0].split("hr")[0]),
                         "hour",
                     ),
-                    ms: Number(x.split("hr")[0].split("h")[0]) * 3600000,
+                    ms: Number(part.split("hr")[0].split("h")[0]) * 3600000,
                     order: 5,
                 });
-            if (x.endsWith("min") || x.endsWith("m"))
-                Hash.set("min", {
+            if (part.endsWith("min") || part.endsWith("m"))
+                timeUnits.set("min", {
                     format: pluralize(
-                        Number(x.split("min")[0].split("m")[0]),
+                        Number(part.split("min")[0].split("m")[0]),
                         "minute",
                     ),
-                    ms: Number(x.split("min")[0].split("m")[0]) * 60000,
+                    ms: Number(part.split("min")[0].split("m")[0]) * 60000,
                     order: 6,
                 });
-            if (x.endsWith("s") && !x.endsWith("ms"))
-                Hash.set("s", {
-                    format: pluralize(Number(x.split("s")[0]), "second"),
-                    ms: Number(x.split("s")[0]) * 1000,
+            if (part.endsWith("s") && !part.endsWith("ms"))
+                timeUnits.set("s", {
+                    format: pluralize(Number(part.split("s")[0]), "second"),
+                    ms: Number(part.split("s")[0]) * 1000,
                     order: 7,
                 });
-            if (x.endsWith("ms"))
-                Hash.set("ms", {
-                    ms: Number(x.split("ms")[0]),
+            if (part.endsWith("ms"))
+                timeUnits.set("ms", {
+                    ms: Number(part.split("ms")[0]),
                     order: 8,
                 });
         });
-        const data = [...Hash.values()].sort(compare);
+        const sortedUnits = [...timeUnits.values()].sort(compare);
 
-        const ms = data.map((x) => x.ms).reduce((a, b) => a + b, 0);
-        const format = data
-            .filter((x) => x.format)
-            .map((x) => x.format)
+        const ms = sortedUnits.map((unit) => unit.ms).reduce((total, value) => total + value, 0);
+        const formatted = sortedUnits
+            .filter((unit) => unit.format)
+            .map((unit) => unit.format)
             .join(", ");
 
         return {
             ms,
-            format,
+            format: formatted,
         };
     }
 }
 
+/**
+ * Breaks a millisecond count into years/months/weeks/days/hours/minutes/
+ * seconds/ms, with helpers to render it as a short string (`"1h 30min"`)
+ * or a human-readable one (`"1 hour, 30 minutes"`).
+ */
 export function format(time: number) {
-    const date = (ms: number) => {
-        const res = Math.trunc(Math.abs(time) / ms);
-        time -= res * ms;
-        return res;
+    const takeUnit = (ms: number) => {
+        const value = Math.trunc(Math.abs(time) / ms);
+        time -= value * ms;
+        return value;
     };
-    const data: {
+    const duration: {
         object: {
             years: number;
             months: number;
@@ -116,31 +130,31 @@ export function format(time: number) {
         toString: () => string;
     } = {
         object: {
-            years: date(31536000000),
-            months: date(2628746000),
-            weeks: date(604800000),
-            days: date(86400000),
-            hours: date(3600000),
-            minutes: date(60000),
-            seconds: date(1000),
-            ms: date(1),
+            years: takeUnit(31536000000),
+            months: takeUnit(2628746000),
+            weeks: takeUnit(604800000),
+            days: takeUnit(86400000),
+            hours: takeUnit(3600000),
+            minutes: takeUnit(60000),
+            seconds: takeUnit(1000),
+            ms: takeUnit(1),
         },
         humanize: () => {
             const string: string[] = [];
-            Object.entries(data.object)
+            Object.entries(duration.object)
                 .slice(0, -1)
-                .forEach((x) => {
-                    if (x[1]) {
-                        if (["months", "ms"].includes(x[0])) {
-                            string.push(`${x[1]}${x[0].slice(0, 3)}`);
+                .forEach((entry) => {
+                    if (entry[1]) {
+                        if (["months", "ms"].includes(entry[0])) {
+                            string.push(`${entry[1]}${entry[0].slice(0, 3)}`);
                         } else {
-                            string.push(`${x[1]}${x[0].slice(0, 1)}`);
+                            string.push(`${entry[1]}${entry[0].slice(0, 1)}`);
                         }
                     }
                 });
             return string.join(" ");
         },
-        toString: () => parse(data.humanize()).format,
+        toString: () => parse(duration.humanize()).format,
     };
-    return data;
+    return duration;
 }

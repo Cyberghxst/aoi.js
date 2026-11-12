@@ -1,42 +1,47 @@
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError,Scope } from "../../../core/index.js";
 
-import { funcData, FunctionData } from "../../../typings/interfaces.js";
+import { funcData } from "../../../typings/interfaces.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-export const $passData: FunctionData = {
-    name: "$passData",
-    brackets: true,
-    optional: false,
-    type: "getter",
-    fields: [
+import { FunctionType } from "../../../typings/enums.js";
+
+const passData = new AoiJSFunction()
+    .setName("$passData")
+    .setType(FunctionType.Getter)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([
         {
             name: "passData",
             type: "string",
             description: "access the data passed to the command from another command",
             required: true,
         },
-    ],
-    description: "return the data passed to the command from another command",
-    default: ["void"],
-    version: "7.0.0",
-    returns: "?string",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["void"])
+    .setReturns("?string")
+    .setDescription("return the data passed to the command from another command")
+    .setExample(`
     $passData[hello] // returns the data passed to the command from another command
-`,
-    code: (data: funcData, scope: Scope[]) => {
-        const passData = data.inside;
-        const currentScope = scope[scope.length - 1];
-        if (
-            !passData &&
+`);
+
+passData.setCode((data: funcData, scope: Scope[], thisArg) => {
+    const passData = data.inside;
+    const currentScope = thisArg.getCurrentScope(scope);
+    if (
+        !passData &&
             !currentScope.name.startsWith("$try_") &&
             !currentScope.name.startsWith("$catch_")
-        ) {
-            throw new TranspilerError(`${data.name}: PASSDATA Not Provided.`);
-        }
-        const res = escapeResult(`__$DISCORD_DATA$__${passData}`);
-        currentScope.update(res, data);
-        return {
-            code: res,
-            scope,
-        };
-    },
-};
+    ) {
+        throw new TranspilerError(`${data.name}: PASSDATA Not Provided.`);
+    }
+    const res = escapeResult(`__$DISCORD_DATA$__${passData}`);
+    currentScope.update(res, data);
+    return {
+        code: res,
+        scope,
+    };
+}, passData);
+
+export const $passData = passData.build();

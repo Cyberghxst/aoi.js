@@ -1,5 +1,5 @@
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError } from "../../../core/error.js";
-import { FunctionData } from "../../../typings/interfaces.js";
 import {
     escapeMathResult,
     parseResult,
@@ -7,8 +7,9 @@ import {
     removeFF,
     removeMF,
 } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
-// function to check if a exression is valid js math expression
+// function to check if a expression is valid js math expression
 function isMathExpression(expression: string): boolean {
     expression = parseResult( removeFF( removeMF( removeF( expression.trim() ) ) ) );
     const numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".",","];
@@ -72,59 +73,62 @@ function isMathExpression(expression: string): boolean {
     }
     return expression.trim() === "";
 }
-export const $math: FunctionData = {
-    name: "$math",
-    type: "getter",
-    brackets: true,
-    optional: false,
-    fields: [
+
+const math = new AoiJSFunction()
+    .setName("$math")
+    .setType(FunctionType.Getter)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([
         {
             name: "expression",
             type: "number",
             description: "The math expression to evaluate",
             required: true,
         },
-    ],
-    version: "7.0.0",
-    default: ["void"],
-    returns: "number",
-    description: "evaluates a math expression",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["void"])
+    .setReturns("number")
+    .setDescription("evaluates a math expression")
+    .setExample(`
     $math[1 + 1] // returns 2
     $math[1 + 1 * 2] // returns 3
 
     $math[sin(1) + cos(1)] // returns 1.3817732906760363
-    `,
-    code: (data, scope) => {
-        const numbers = data.inside;
-        const currentScope = scope[scope.length - 1];
-        if (
-            data.splits.length === 0 &&
+    `);
+
+math.setCode((data, scope, thisArg) => {
+    const numbers = data.inside;
+    const currentScope = thisArg.getCurrentScope(scope);
+    if (
+        data.splits.length === 0 &&
             !currentScope.name.startsWith("$try_") &&
             !currentScope.name.startsWith("$catch_")
-        ) {
-            throw new TranspilerError(
-                `${data.name} requires at least 1 argument`,
-            );
-        }
-        if (numbers && !isMathExpression(numbers)) {
-            throw new TranspilerError(
-                `${data.name} requires a valid math expression`,
-            );
-        }
-        const regex = /(abs|acos|acosh|asin|asinh|atan|atan2|atanh|cbrt|ceil|clz32|cos|cosh|exp|expm1|floor|fround|hypot|imul|log|log10|log1p|log2|max|min|pow|random|round|sign|sin|sinh|sqrt|tan|tanh|trunc|LN10|LN2|LOG10E|LOG2E|PI|SQRT1_2|SQRT2)/g;
-        const math = numbers?.replaceAll(regex, "Math.$1").replaceAll("EULERNUM", "Math.E");
-        if ( !math )
-        {
-            throw new TranspilerError(
-                `${data.name} requires a valid math expression`,
-            );
-        }
-        const res = escapeMathResult(`(${parseResult(math)})`);
-        currentScope.update(res, data);
-        return {
-            code: res,
-            scope,
-        };
-    },
-};
+    ) {
+        throw new TranspilerError(
+            `${data.name} requires at least 1 argument`,
+        );
+    }
+    if (numbers && !isMathExpression(numbers)) {
+        throw new TranspilerError(
+            `${data.name} requires a valid math expression`,
+        );
+    }
+    const regex = /(abs|acos|acosh|asin|asinh|atan|atan2|atanh|cbrt|ceil|clz32|cos|cosh|exp|expm1|floor|fround|hypot|imul|log|log10|log1p|log2|max|min|pow|random|round|sign|sin|sinh|sqrt|tan|tanh|trunc|LN10|LN2|LOG10E|LOG2E|PI|SQRT1_2|SQRT2)/g;
+    const math = numbers?.replaceAll(regex, "Math.$1").replaceAll("EULERNUM", "Math.E");
+    if ( !math )
+    {
+        throw new TranspilerError(
+            `${data.name} requires a valid math expression`,
+        );
+    }
+    const res = escapeMathResult(`(${parseResult(math)})`);
+    currentScope.update(res, data);
+    return {
+        code: res,
+        scope,
+    };
+}, math);
+
+export const $math = math.build();

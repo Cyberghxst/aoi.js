@@ -8,6 +8,7 @@ import { AoiClient } from "../structures/AoiClient.js";
 import { isAutoFetchDataEnabled } from "../util/DapiHelper.js";
 import { AoiClientEvents } from "../typings/enums.js";
 
+/** Subscribes the interaction handler to the gateway's InteractionCreate event. */
 export function onInteraction(client: AoiClient) {
     client.client.on(
         GatewayEventNames.InteractionCreate,
@@ -17,6 +18,16 @@ export function onInteraction(client: AoiClient) {
     );
 }
 
+/**
+ * Runs the interaction command whose name matches the interaction.
+ * The channel and guild are taken from the interaction when present,
+ * then from the cache, then fetched live when auto-fetch is enabled
+ * for that kind of data; otherwise a stub carrying only the id is
+ * passed, so commands can still read the id without a fetch.
+ * Errors from a command are swallowed when the command already handled
+ * them (the `component` flag), and anything else is emitted as a client
+ * error.
+ */
 export async function interactionCreate(
     interaction: Interaction,
     client: AoiClient,
@@ -58,6 +69,13 @@ export async function interactionCreate(
         });
 }
 
+/**
+ * The command name an interaction targets: the slash command name for
+ * application commands and autocomplete, the custom id for message
+ * components (buttons, modals, select menus). Anything else (for
+ * example a modal submit, which is a different interaction type) has
+ * no command name and is ignored.
+ */
 function getCommandName(interaction: Interaction) {
     switch (interaction.type) {
     case InteractionTypes.ApplicationCommand:

@@ -3,10 +3,11 @@ import { InteractionResponseTypes, Snowflake } from "zeneth";
 import { StringObject, parseStringObject } from "../../../index.js";
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
 const autocomplete = new AoiJSFunction()
     .setName("$autocompleteRespond")
-    .setType("setter")
+    .setType(FunctionType.Setter)
     .setBrackets(true)
     .setOptional(true)
     .setFields([

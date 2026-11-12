@@ -1,41 +1,44 @@
-import { FunctionData } from "../../../typings/interfaces.js";
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import {
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
-export const $username: FunctionData = {
-    name: "$username",
-    type: "getter",
-    brackets: true,
-    optional: false,
-    fields: [
+const username = new AoiJSFunction()
+    .setName("$username")
+    .setType(FunctionType.Getter)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([
         {
             name: "user",
             type: "bigint",
             required: true,
         }
-    ],
-    version: "7.0.0",
-    default: ["void"],
-    returns: "string",
-    description: "Returns the name of the user",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["void"])
+    .setReturns("string")
+    .setDescription("Returns the name of the user")
+    .setExample(`
         $username[$authorId] // returns the name of the author
 
         $username[123456789012345678] // returns the name of the user with id 123456789012345678
-    `,
-    code: (data, scope) => {
-        const currentScope = scope[scope.length - 1];
+    `);
 
-        const id = data.inside;
+username.setCode((data, scope, thisArg) => {
+    const currentScope = thisArg.getCurrentScope(scope);
 
-        const username = `(await __$DISCORD_DATA$__.bot.util.getUser(${id}))?.username`;
+    const id = data.inside;
 
-        const res = escapeResult(`(${username})`);
-        currentScope.update(res, data);
-        return {
-            code: res,
-            scope,
-        };
-    },
-};
+    const username = `(await __$DISCORD_DATA$__.bot.util.getUser(${id}))?.username`;
+
+    const res = escapeResult(`(${username})`);
+    currentScope.update(res, data);
+    return {
+        code: res,
+        scope,
+    };
+}, username);
+
+export const $username = username.build();

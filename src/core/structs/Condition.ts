@@ -4,6 +4,14 @@ import { parseString } from "../parsers/stringParser.js";
 import { BundlerCustoms } from "../../typings/enums.js";
 const operators = ["===", "!==", "==", "!=", ">", "<", ">=", "<="];
 
+/**
+ * One node of a parsed condition (e.g. the inside of `$if[...]`).
+ *
+ * Nested parentheses become child conditions, which are solved first and
+ * substituted back as `(#CONDITION#)` placeholders, so each comparison is
+ * resolved against already-computed values. `&&` binds looser than `||`
+ * here: a top-level `&&` splits first and each side is checked for `||`.
+ */
 export default class Condition {
     condition: string;
     nest: Condition[];
@@ -20,39 +28,39 @@ export default class Condition {
     }
     solveAnd(condition: string) {
         const conditions = condition.split("&&");
-        const res = [];
-        for (const c of conditions) {
+        const solvedConditions = [];
+        for (const conditionPart of conditions) {
             if (condition.includes("||")) {
-                res.push(this.solveOr(c));
+                solvedConditions.push(this.solveOr(conditionPart));
             } else {
-                res.push(this._solve(c));
+                solvedConditions.push(this._solve(conditionPart));
             }
         }
-        return res.join("&&");
+        return solvedConditions.join("&&");
     }
     solveOr(condition: string) {
         const conditions = condition.split("||");
-        const res = [];
-        for (const c of conditions) {
-            res.push(this._solve(c));
+        const solvedConditions = [];
+        for (const conditionPart of conditions) {
+            solvedConditions.push(this._solve(conditionPart));
         }
-        return res.join("||");
+        return solvedConditions.join("||");
     }
     _solve(condition: string): string {
         condition = condition
             .replaceAll("#SMOOTH_BRACKET_LEFT#", "(")
             .replaceAll("#SMOOTH_BRACKET_RIGHT#", ")");
         if (this.nest.length) {
-            for (const c of this.nest) {
-                const solvedData = c.solve();
+            for (const nestedCondition of this.nest) {
+                const solvedData = nestedCondition.solve();
                 condition = condition.replace("#CONDITION#", `(${solvedData})`);
             }
             return condition;
         } else {
-            const op = operators.find((o) => condition.includes(o));
-            let res;
-            if (op) {
-                const [left, right] = condition.split(op);
+            const operator = operators.find((o) => condition.includes(o));
+            let result;
+            if (operator) {
+                const [left, right] = condition.split(operator);
                 let leftData, rightData;
                 if (left.trim().split(" ").length === 1) {
                     leftData = parseData(left.trim());
@@ -66,7 +74,7 @@ export default class Condition {
                         if (
                             !((leftData.startsWith("#FUNCTION_START#") &&
                                 leftData.endsWith("#FUNCTION_END#")) ||
-                            leftData.startsWith("__$DISCORD_DATA$__") || leftData.trim() === BundlerCustoms.EJS )
+                            leftData.startsWith("__$DISCORD_DATA$__") || leftData.trim() === BundlerCustoms.EJS)
                         ) {
                             leftData = parseString(leftData);
                             if (
@@ -79,9 +87,8 @@ export default class Condition {
                                 );
                             }
                         }
-                    } else if ( typeof leftData === "bigint" )
-                    {
-                        leftData = leftData.toString()+"n";
+                    } else if (typeof leftData === "bigint") {
+                        leftData = leftData.toString() + "n";
                     }
                 } else {
                     leftData = parseString(left.trim());
@@ -122,24 +129,24 @@ export default class Condition {
                     } else if (typeof rightData === "bigint") {
                         rightData = rightData.toString() + "n";
                     }
-                    res = `${leftData}${op}${rightData}`;
+                    result = `${leftData}${operator}${rightData}`;
                 } else {
                     rightData = parseString(right.trim());
-                    res = `${leftData}${op}${rightData}`;
+                    result = `${leftData}${operator}${rightData}`;
                 }
             } else {
-                res = parseData(condition);
+                result = parseData(condition);
                 if (
-                    typeof res === "string" &&
-                    (!res.endsWith("#FUNCTION_END#") ||
-                        res.trim().split(" ").length > 1) &&
-                    !res.startsWith("#FUNCTION_START#") && res.trim() !== BundlerCustoms.EJS
+                    typeof result === "string" &&
+                    (!result.endsWith("#FUNCTION_END#") ||
+                        result.trim().split(" ").length > 1) &&
+                    !result.startsWith("#FUNCTION_START#") && result.trim() !== BundlerCustoms.EJS
                 ) {
-                    res = parseString(res);
+                    result = parseString(result);
                 }
             }
 
-            return res;
+            return result;
         }
     }
     add(part: string) {

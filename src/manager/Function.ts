@@ -2,31 +2,45 @@ import { Group } from "@akarui/structures";
 import { AoiClient } from "../structures/AoiClient.js";
 import { FunctionData } from "../typings/interfaces.js";
 import fs from "fs/promises";
+
+/**
+ * Registry for custom $functions. A registered function becomes
+ * available to the transpiler under its name, alongside the built-ins.
+ */
 export class FunctionManager {
     client: AoiClient;
     functions: Group<string, FunctionData> = new Group<string, FunctionData>(Infinity);
-    constructor ( client: AoiClient ) {
+    constructor(client: AoiClient) {
         this.client = client;
     }
-    createFunction ( data: FunctionData ) {
-        if ( !data.name ) throw new Error( "Function name is required" );
-        if ( !data.code ) throw new Error( "Function code is required" );
-        this.functions.set( data.name, data );
+
+    /** Registers one custom function. Its name and code are required because the transpiler looks it up by name and inlines its code. */
+    createFunction(data: FunctionData) {
+        if (!data.name) throw new Error("Function name is required");
+        if (!data.code) throw new Error("Function code is required");
+        this.functions.set(data.name, data);
     }
-    createManyFunctions ( data: FunctionData[] ) {
-        for ( const func of data ) this.createFunction( func );
+
+    /** Registers several custom functions in order. */
+    createManyFunctions(data: FunctionData[]) {
+        for (const functionData of data) this.createFunction(functionData);
     }
-    async load ( path: string ) {
-        const stats = await fs.stat( path );
-        if ( stats.isDirectory() ) {
-            const files =  await fs.readdir( path );
-            for ( const file of files ) {
+
+    /**
+     * Recursively loads custom functions from `.js` files in a
+     * directory. Each file must default-export one function definition.
+     */
+    async load(path: string) {
+        const stats = await fs.stat(path);
+        if (stats.isDirectory()) {
+            const files = await fs.readdir(path);
+            for (const file of files) {
                 const filePath = path + "/" + file;
-                const stats = await fs.stat( filePath );
-                if ( stats.isDirectory() ) await this.load( filePath );
-                else if ( stats.isFile() && file.endsWith( ".js" ) ) {
-                    const func = await import( filePath );
-                    this.createFunction( func.default );
+                const stats = await fs.stat(filePath);
+                if (stats.isDirectory()) await this.load(filePath);
+                else if (stats.isFile() && file.endsWith(".js")) {
+                    const func = await import(filePath);
+                    this.createFunction(func.default);
                 }
             }
         }

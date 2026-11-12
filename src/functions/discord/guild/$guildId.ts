@@ -1,9 +1,10 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
 const guildId = new AoiJSFunction()
     .setName("$guildId")
-    .setType("getter")
+    .setType(FunctionType.Getter)
     .setBrackets(false)
     .setOptional(false)
     .setFields([])
@@ -26,4 +27,4 @@ guildId.setCode((data, scope, thisArg) => {
     };
 }, guildId);
 
-export const $guildId = guildId;
+export const $guildId = guildId.build();

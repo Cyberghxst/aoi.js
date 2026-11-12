@@ -1,12 +1,14 @@
-import { FunctionData, funcData, Scope, parseString } from "../../../index.js";
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
+import { funcData, Scope, parseString } from "../../../index.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
-export const $includes: FunctionData = {
-    name: "$includes",
-    brackets: true,
-    optional: false,
-    type: "getter",
-    fields: [
+const includes = new AoiJSFunction()
+    .setName("$includes")
+    .setType(FunctionType.Getter)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([
         {
             name: "text",
             type: "string",
@@ -19,25 +21,27 @@ export const $includes: FunctionData = {
             description: "The text to search for",
             required: true,
         },
-    ],
-    version: "7.0.0",
-    default: ["void", "void"],
-    returns: "boolean",
-    description: "Checks if the text includes the search",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["void", "void"])
+    .setReturns("boolean")
+    .setDescription("Checks if the text includes the search")
+    .setExample(`
         $includes[Hello World;Hello] // returns true
         $includes[Hello World;hello] // returns false
-    `,
-    code: (data: funcData, scope: Scope[]) => {
-        const currentScope = scope[scope.length - 1];
-        const [text, search] = data.splits;
-        const parsedText = parseString(text);
-        const parsedSearch = parseString(search);
-        const res = escapeResult(`${parsedText}.includes(${parsedSearch})`);
-        currentScope.rest = currentScope.rest.replace(data.total, res);
-        return {
-            code: res,
-            scope: scope,
-        };
-    },
-};
+    `);
+
+includes.setCode((data: funcData, scope: Scope[], thisArg) => {
+    const currentScope = thisArg.getCurrentScope(scope);
+    const [text, search] = data.splits;
+    const parsedText = parseString(text);
+    const parsedSearch = parseString(search);
+    const res = escapeResult(`${parsedText}.includes(${parsedSearch})`);
+    currentScope.rest = currentScope.rest.replace(data.total, res);
+    return {
+        code: res,
+        scope: scope,
+    };
+}, includes);
+
+export const $includes = includes.build();

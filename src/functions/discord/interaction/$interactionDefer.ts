@@ -3,10 +3,11 @@
 import { InteractionResponseTypes, MessageFlags, Snowflake } from "zeneth";
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
 const interactionDefer = new AoiJSFunction()
     .setName("$interactionDefer")
-    .setType("setter")
+    .setType(FunctionType.Setter)
     .setBrackets(true)
     .setOptional(true)
     .setFields([

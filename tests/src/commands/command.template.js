@@ -1,7 +1,13 @@
-
+/**
+ * Starter template for a new command (CommonJS flavour): copy this file
+ * into ./commands, rename it, and replace the placeholders — CommandName
+ * with the command's name, CommandAliases with its aliases (optional),
+ * CommandType with the command type, and CommandCode with the aoi-code the
+ * command should run.
+ */
 module.exports = {
     name: "CommandName",
     aliases: ["CommandAliases"], //optional
     type: "CommandType",
-    code: `CommandCode`
+    code: "CommandCode"
 };

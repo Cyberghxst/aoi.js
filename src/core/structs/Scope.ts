@@ -1,5 +1,5 @@
 import { AoiClient } from "../../index.js";
-import { BundlerCustoms, TranspilerCustoms } from "../../typings/enums.js";
+import { BundlerCustoms, FunctionType, TranspilerCustoms } from "../../typings/enums.js";
 import { funcData } from "../../typings/interfaces.js";
 import {
     escapeResult,
@@ -12,6 +12,15 @@ import fixMath from "../parsers/mathParser.js";
 import { parseString } from "../parsers/stringParser.js";
 import StringObject from "./StringObject.js";
 
+/**
+ * The execution context of one command (or one nested scope inside it).
+ *
+ * A scope accumulates everything a transpiled command needs to emit: the
+ * message content to send, embeds/components/files/stickers, variables,
+ * objects, generated helper functions, and the leftover code (`rest`) that
+ * has not been consumed by a `$function` yet. `toString()` / `getFunction()`
+ * assemble those pieces into the final JavaScript function.
+ */
 export default class Scope {
     name: string;
     parent: string | undefined;
@@ -100,9 +109,9 @@ export default class Scope {
     updateEmbedJs() {
         const embeds = [...this.embededJS.reverse()];
         for (const embed of embeds) {
-            const old = this.rest;
+            const previousRest = this.rest;
             this.rest = this.replaceLast(this.rest, BundlerCustoms.EJS, embed);
-            if (this.rest === old) {
+            if (this.rest === previousRest) {
                 this.packages = this.embededJS.shift() + "\n" + this.packages;
             } else {
                 this.embededJS.shift();
@@ -110,18 +119,18 @@ export default class Scope {
         }
     }
     toString(sendMessage = true) {
-        const sendData: Record<string, string> = { ...this.sendData };
-        sendData.embeds = escapeResult(escapeVars(`${this.name}_embeds`));
-        sendData.components = escapeResult(
+        const sendPayload: Record<string, string> = { ...this.sendData };
+        sendPayload.embeds = escapeResult(escapeVars(`${this.name}_embeds`));
+        sendPayload.components = escapeResult(
             escapeVars(`${this.name}_components`),
         );
-        sendData.files = escapeResult(escapeVars(`${this.name}_files`));
-        sendData.stickers = escapeResult(escapeVars(`${this.name}_stickers`));
-        sendData.content = sendData.content
+        sendPayload.files = escapeResult(escapeVars(`${this.name}_files`));
+        sendPayload.stickers = escapeResult(escapeVars(`${this.name}_stickers`));
+        sendPayload.content = sendPayload.content
             .replaceAll("\n", TranspilerCustoms.NL)
             .replaceAll(BundlerCustoms.EJS, "");
         if (
-            sendData.content.replaceAll(TranspilerCustoms.NL, "").trim() !==
+            sendPayload.content.replaceAll(TranspilerCustoms.NL, "").trim() !==
                 "" ||
             this.embeds.length ||
             this.files.length ||
@@ -130,25 +139,25 @@ export default class Scope {
             this.hasSendData = true;
         else this.hasSendData = false;
 
-        let parsedStr = parseString(
-            sendData.content.replaceAll(TranspilerCustoms.NL, "\n").trim(),
+        let parsedContent = parseString(
+            sendPayload.content.replaceAll(TranspilerCustoms.NL, "\n").trim(),
         );
-        parsedStr =
-            parsedStr.trim().replaceAll(TranspilerCustoms.SL, "\\`") === ""
+        parsedContent =
+            parsedContent.trim().replaceAll(TranspilerCustoms.SL, "\\`") === ""
                 ? " "
-                : parsedStr.trim().replaceAll(TranspilerCustoms.SL, "\\`");
+                : parsedContent.trim().replaceAll(TranspilerCustoms.SL, "\\`");
 
-        if (sendData.content.trim() !== "") {
+        if (sendPayload.content.trim() !== "") {
             this.rest = this.replaceLast(
                 parseResult(removeMultiLineComments(this.rest.trim())),
-                sendData.content.replaceAll(TranspilerCustoms.NL, "\n").trim(),
+                sendPayload.content.replaceAll(TranspilerCustoms.NL, "\n").trim(),
                 "",
             );
         }
-        parsedStr = parsedStr.replaceAll("\\n", TranspilerCustoms.NL);
+        parsedContent = parsedContent.replaceAll("\\n", TranspilerCustoms.NL);
 
-        const sent = `{
-  content: ${fixMath(parsedStr.trim() === "``" ? "` `" : parsedStr)},
+        const messagePayload = `{
+  content: ${fixMath(parsedContent.trim() === "``" ? "` `" : parsedContent)},
   embeds: ${escapeVars(`${this.name}_embeds`)},
   components: ${escapeVars(`${this.name}_components`)},
   files: ${escapeVars(`${this.name}_files`)},
@@ -174,9 +183,9 @@ export default class Scope {
                                       typeof this.useChannel === "bigint"
                                           ? this.useChannel.toString() + "n"
                                           : this.useChannel.toString(),
-                                  )},${sent});`
+                                  )},${messagePayload});`
                                 : this.sendFunction +
-                                  `(__$DISCORD_DATA$__.message.channelId,${sent});`
+                                  `(__$DISCORD_DATA$__.message.channelId,${messagePayload});`
                         }`;
                     } else {
                         return "";
@@ -185,31 +194,31 @@ export default class Scope {
         ).replaceAll(TranspilerCustoms.SL, "\\`");
     }
     getFunction(sendMessage = true, execute = false) {
-        const name = this.name === "global" ? "main" : this.name;
+        const functionName = this.name === "global" ? "main" : this.name;
         return (
-            `async function ${name}(__$DISCORD_DATA$__) {\n${this.toString(
+            `async function ${functionName}(__$DISCORD_DATA$__) {\n${this.toString(
                 sendMessage,
             )}\n}` +
             (execute
                 ? `\n${
                     this.addReturn ? "return " : ""
-                }${name}(__$DISCORD_DATA$__);`
+                }${functionName}(__$DISCORD_DATA$__);`
                 : "")
         ).replaceAll(TranspilerCustoms.SL, "`");
     }
     editMessage(channel: string, message: string) {
-        const sendData: Record<string, string> = { ...this.sendData };
-        sendData.embeds = escapeResult(escapeVars(`${this.name}_embeds`));
-        sendData.components = escapeResult(
+        const sendPayload: Record<string, string> = { ...this.sendData };
+        sendPayload.embeds = escapeResult(escapeVars(`${this.name}_embeds`));
+        sendPayload.components = escapeResult(
             escapeVars(`${this.name}_components`),
         );
-        sendData.files = escapeResult(escapeVars(`${this.name}_files`));
-        sendData.content = sendData.content.replaceAll(
+        sendPayload.files = escapeResult(escapeVars(`${this.name}_files`));
+        sendPayload.content = sendPayload.content.replaceAll(
             "\n",
             TranspilerCustoms.NL,
         );
         if (
-            sendData.content.replaceAll(TranspilerCustoms.NL, "").trim() !==
+            sendPayload.content.replaceAll(TranspilerCustoms.NL, "").trim() !==
                 "" ||
             this.embeds.length ||
             this.files.length ||
@@ -218,10 +227,10 @@ export default class Scope {
             this.hasSendData = true;
         else this.hasSendData = false;
 
-        let parsedStr = parseString(
-            sendData.content.replaceAll(TranspilerCustoms.NL, "\n").trim(),
+        let parsedContent = parseString(
+            sendPayload.content.replaceAll(TranspilerCustoms.NL, "\n").trim(),
         );
-        parsedStr = parsedStr.trim() === "" ? " " : parsedStr.trim();
+        parsedContent = parsedContent.trim() === "" ? " " : parsedContent.trim();
 
         this.rest = this.replaceLast(
             this.rest.trim(),
@@ -229,8 +238,8 @@ export default class Scope {
             "",
         );
 
-        const sent = `{
-  content: ${parsedStr.replaceAll("\\n", TranspilerCustoms.NL)},
+        const messagePayload = `{
+  content: ${parsedContent.replaceAll("\\n", TranspilerCustoms.NL)},
   embeds: ${escapeVars(`${this.name}_embeds`)},
   components: ${escapeVars(`${this.name}_components`)},
   files: ${escapeVars(`${this.name}_files`)},
@@ -255,7 +264,7 @@ export default class Scope {
                             this.addReturn ? "return " : ""
                         } await ${`__$DISCORD_DATA$__.client.editMessage(${parseString(
                             channel,
-                        )},${parseString(message)},${sent}).catch(e => {
+                        )},${parseString(message)},${messagePayload}).catch(e => {
               throw e;
             });`}`;
                     } else {
@@ -265,56 +274,56 @@ export default class Scope {
                 "\n}",
         ).replaceAll(TranspilerCustoms.SL, "\\`");
     }
-    update(res: string, data: funcData) {
-        if (data.type === "function") {
+    update(generatedCode: string, functionData: funcData) {
+        if (functionData.type === FunctionType.Function) {
             this.rest = this.rest.replace(
-                data.total.replaceAll(TranspilerCustoms.FSEP, ";"),
-                res.replaceAll("$", "$$$$"),
+                functionData.total.replaceAll(TranspilerCustoms.FSEP, ";"),
+                generatedCode.replaceAll("$", "$$$$"),
             );
-        } else if (data.type === "setter") {
-            this.setters += res + "\n";
+        } else if (functionData.type === FunctionType.Setter) {
+            this.setters += generatedCode + "\n";
 
             this.rest = this.rest.replace(
-                removeSetFunc(data.total).replaceAll(
+                removeSetFunc(functionData.total).replaceAll(
                     TranspilerCustoms.FSEP,
                     ";",
                 ),
                 "",
             );
-        } else if (data.type === "function_getter") {
+        } else if (functionData.type === FunctionType.FunctionGetter) {
             this.rest = this.rest.replace(
-                data.total.replaceAll(TranspilerCustoms.FSEP, ";"),
-                res.replaceAll("$", "$$$$"),
+                functionData.total.replaceAll(TranspilerCustoms.FSEP, ";"),
+                generatedCode.replaceAll("$", "$$$$"),
             );
-        } else if (data.type === "getter") {
+        } else if (functionData.type === FunctionType.Getter) {
             this.rest = this.rest.replace(
-                data.total.replaceAll(TranspilerCustoms.FSEP, ";"),
-                res.replaceAll("$", "$$$$"),
+                functionData.total.replaceAll(TranspilerCustoms.FSEP, ";"),
+                generatedCode.replaceAll("$", "$$$$"),
             );
-            // this.rest = this.replaceLast(this.rest, data.total.replaceAll(TranspilerCustoms.FSEP, ";"),res.replaceAll("$", "$$$$"));
-        } else if (data.type === "scope" || data.type === "scope_getter") {
+            // this.rest = this.replaceLast(this.rest, functionData.total.replaceAll(TranspilerCustoms.FSEP, ";"),generatedCode.replaceAll("$", "$$$$"));
+        } else if (functionData.type === FunctionType.Scope || functionData.type === FunctionType.ScopeGetter) {
             this.rest = this.rest.replace(
-                data.total.replaceAll(TranspilerCustoms.FSEP, ";"),
-                res.replaceAll("$", "$$$$"),
+                functionData.total.replaceAll(TranspilerCustoms.FSEP, ";"),
+                generatedCode.replaceAll("$", "$$$$"),
             );
-            data.funcs = [];
+            functionData.funcs = [];
         }
     }
 
     rawString() {
-        const sendData: Record<string, string> = { ...this.sendData };
-        sendData.embeds = escapeResult(escapeVars(`${this.name}_embeds`));
-        sendData.components = escapeResult(
+        const sendPayload: Record<string, string> = { ...this.sendData };
+        sendPayload.embeds = escapeResult(escapeVars(`${this.name}_embeds`));
+        sendPayload.components = escapeResult(
             escapeVars(`${this.name}_components`),
         );
-        sendData.files = escapeResult(escapeVars(`${this.name}_files`));
-        sendData.stickers = escapeResult(escapeVars(`${this.name}_stickers`));
-        sendData.content = sendData.content.replaceAll(
+        sendPayload.files = escapeResult(escapeVars(`${this.name}_files`));
+        sendPayload.stickers = escapeResult(escapeVars(`${this.name}_stickers`));
+        sendPayload.content = sendPayload.content.replaceAll(
             "\n",
             TranspilerCustoms.NL,
         );
         if (
-            sendData.content.replaceAll(TranspilerCustoms.NL, "").trim() !==
+            sendPayload.content.replaceAll(TranspilerCustoms.NL, "").trim() !==
                 "" ||
             this.embeds.length ||
             this.files.length ||

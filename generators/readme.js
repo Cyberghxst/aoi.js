@@ -1,71 +1,88 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
+// This is a plain CommonJS script, so require() is the correct way to load
+// the fs module.
+
+/**
+ * README generator for the $functions, run with `npm run genmd`.
+ *
+ * It scans src/functions (grouped as category/subcategory, e.g.
+ * discord/message/$sendmessage.ts), collects every function file (files
+ * whose name starts with "$"), and writes three README.md files with
+ * Mermaid graphs of the directory structure:
+ * - src/functions/README.md (all categories)
+ * - src/functions/discord/README.md (the discord functions)
+ * - src/functions/js/README.md (the plain-JS functions)
+ *
+ * The generated Markdown must stay in sync with the directory layout, so
+ * re-run this script after adding, moving, or removing a $function.
+ */
 const fs = require( "fs" );
 
-const file = process.cwd() + "/src/functions";
+const functionsDirectory = process.cwd() + "/src/functions";
 
-const dirs = fs.readdirSync( file, { withFileTypes: true } ).filter( x => x.isDirectory() ).map( x => x.name );
+const categories = fs.readdirSync( functionsDirectory, { withFileTypes: true } ).filter( x => x.isDirectory() ).map( x => x.name );
 
-const folders = {};
-for ( const dir of dirs )
+const functionsByCategory = {};
+for ( const category of categories )
 {
-    const subdirs = fs.readdirSync( file + "/" + dir, { withFileTypes: true } ).filter( x => x.isDirectory() ).map( x => x.name );
-    const obj = {};
-    for ( const subdir of subdirs )
+    const subcategories = fs.readdirSync( functionsDirectory + "/" + category, { withFileTypes: true } ).filter( x => x.isDirectory() ).map( x => x.name );
+    const functionsBySubcategory = {};
+    for ( const subcategory of subcategories )
     {
-        const files = fs.readdirSync( file + "/" + dir + "/" + subdir, { withFileTypes: true } ).filter( x => x.isFile() && x.name.startsWith( ( "$" ) ) ).map( x => x.name.split( "." )[ 0 ] );
-        if( files.length)
-            obj[ subdir ] = files;
+        const functionNames = fs.readdirSync( functionsDirectory + "/" + category + "/" + subcategory, { withFileTypes: true } ).filter( x => x.isFile() && x.name.startsWith( "$" ) ).map( x => x.name.split( "." )[ 0 ] );
+        if ( functionNames.length )
+            functionsBySubcategory[ subcategory ] = functionNames;
     }
-    folders[ dir ] = obj;
+    functionsByCategory[ category ] = functionsBySubcategory;
 }
-console.log( folders );
+console.log( functionsByCategory );
 
 const readme = `# Functions
 
 ## Directory Structure
 \`\`\`mermaid
 graph RL;
-${ Object.keys( folders ).map( x => `${ x } --> Functions` ).join( ";\n" )};
-${ Object.keys( folders ).map( x => Object.keys( folders[ x ] ).map( y => `${ y } --> ${ x }` ).join( ";\n" ) ).join( ";\n" )};
+${ Object.keys( functionsByCategory ).map( x => `${ x } --> Functions` ).join( ";\n" )};
+${ Object.keys( functionsByCategory ).map( x => Object.keys( functionsByCategory[ x ] ).map( y => `${ y } --> ${ x }` ).join( ";\n" ) ).join( ";\n" )};
 \`\`\`
 
 ## Divisions
 
-${ Object.keys( folders ).map( x => ` - \`${ x }\`: Contains functions related to ${ x }` ).join( "\n" )}
+${ Object.keys( functionsByCategory ).map( x => ` - \`${ x }\`: Contains functions related to ${ x }` ).join( "\n" )}
 `;
 
-fs.writeFileSync( file + "/README.md", readme );
+fs.writeFileSync( functionsDirectory + "/README.md", readme );
 
-const DiscordReadme = `# Discord
+const discordReadme = `# Discord
 
 ## Directory Structure
 
 \`\`\`mermaid
 graph RL;
-${ Object.keys( folders[ "discord" ] ).map( x => folders[ "discord" ][ x ].map( y => `${ y } --> ${ x }` ).join( ";\n" ) ).join( ";\n" ) };
+${ Object.keys( functionsByCategory[ "discord" ] ).map( x => functionsByCategory[ "discord" ][ x ].map( y => `${ y } --> ${ x }` ).join( ";\n" ) ).join( ";\n" ) };
 
 \`\`\`
 
 ## Divisions
 
-${ Object.keys( folders[ "discord" ] ).map( x => ` - \`${ x }\`: Contains functions related to ${ x }` ).join( "\n" )}
+${ Object.keys( functionsByCategory[ "discord" ] ).map( x => ` - \`${ x }\`: Contains functions related to ${ x }` ).join( "\n" )}
 `;
 
-fs.writeFileSync( file + "/discord/README.md", DiscordReadme );
+fs.writeFileSync( functionsDirectory + "/discord/README.md", discordReadme );
 
-const JsReadme = `# JavaScript
+const jsReadme = `# JavaScript
 
 ## Directory Structure
 
 \`\`\`mermaid
 graph RL;
-${ Object.keys( folders[ "js" ] ).map( x => folders[ "js" ][ x ].map( y => `${ y } --> ${ x }` ).join( ";\n" ) ).join( ";\n" ) };
+${ Object.keys( functionsByCategory[ "js" ] ).map( x => functionsByCategory[ "js" ][ x ].map( y => `${ y } --> ${ x }` ).join( ";\n" ) ).join( ";\n" ) };
 
 \`\`\`
 
 ## Divisions
 
-${ Object.keys( folders[ "js" ] ).map( x => ` - \`${ x }\`: Contains functions related to ${ x }` ).join( "\n" )};
+${ Object.keys( functionsByCategory[ "js" ] ).map( x => ` - \`${ x }\`: Contains functions related to ${ x }` ).join( "\n" )};
 `;
 
-fs.writeFileSync( file + "/js/README.md", JsReadme );
+fs.writeFileSync( functionsDirectory + "/js/README.md", jsReadme );

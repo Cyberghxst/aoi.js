@@ -1,3 +1,8 @@
+/**
+ * Parses the ad-hoc format used by `.aoi` command files: a flat `key: value`
+ * mapping where values are either plain text, `@{...}` string literals, or
+ * nested `{...}` objects parsed recursively.
+ */
 export class JsonXYaml {
     obj: Record<string, unknown> = {};
     isInString = false;
@@ -5,24 +10,24 @@ export class JsonXYaml {
     hasPotential = false;
     stringLiteralStarted = false;
 
-    constructor(ob: string) {
-        ob = ob.trim();
-        let temp = "";
+    constructor(source: string) {
+        source = source.trim();
+        let buffer = "";
         let currentKey = "";
-        for (const char of ob) {
+        for (const char of source) {
             if (char === ":" && !this.isInString && !this.isObject) {
-                const key = temp.trim();
+                const key = buffer.trim();
                 currentKey = key;
-                temp = "";
+                buffer = "";
             } else if (
                 char === "\n" &&
                 !this.isInString &&
                 !this.isObject &&
-                temp.trim() !== ""
+                buffer.trim() !== ""
             ) {
-                const value = temp.trim();
+                const value = buffer.trim();
                 this.obj[currentKey] = value;
-                temp = "";
+                buffer = "";
                 currentKey = "";
             } else if (char === "@" && !this.isInString) {
                 this.hasPotential = true;
@@ -31,13 +36,13 @@ export class JsonXYaml {
                 this.stringLiteralStarted = true;
             } else if (char === "}" && this.isInString && this.hasPotential) {
                 this.isInString = false;
-                this.obj[currentKey] = `${temp.trim()}`;
-                temp = "";
+                this.obj[currentKey] = `${buffer.trim()}`;
+                buffer = "";
                 this.stringLiteralStarted = false;
                 this.hasPotential = false;
             } else if (char === "{" && !this.isInString && !this.hasPotential) {
                 this.isObject = true;
-                temp += char;
+                buffer += char;
             } else if (
                 char === "}" &&
                 !this.isInString &&
@@ -45,17 +50,17 @@ export class JsonXYaml {
                 this.isObject
             ) {
                 this.isObject = false;
-                temp += char;
+                buffer += char;
                 this.obj[currentKey] = new JsonXYaml(
-                    temp
+                    buffer
                         .trim()
-                        .slice(1, temp.length - 1)
+                        .slice(1, buffer.length - 1)
                         .trim(),
                 ).toObject();
-                temp = "";
+                buffer = "";
                 currentKey = "";
             } else {
-                temp += char;
+                buffer += char;
                 if (
                     this.hasPotential &&
                     char !== "{" &&

@@ -1,39 +1,42 @@
-import { FunctionData } from "../../../typings/interfaces.js";
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import {
     escapeResult, parseResult,
 } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
-export const $userTag: FunctionData = {
-    name: "$userTag",
-    type: "getter",
-    brackets: true,
-    optional: true,
-    fields: [
+const userTag = new AoiJSFunction()
+    .setName("$userTag")
+    .setType(FunctionType.Getter)
+    .setBrackets(true)
+    .setOptional(true)
+    .setFields([
         {
             name: "user",
             type: "bigint",
             required: false,
         }
-    ],
-    version: "7.0.0",
-    default: ["authorId"],
-    returns: "string",
-    description: "Returns the tag of the user",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["authorId"])
+    .setReturns("string")
+    .setDescription("Returns the tag of the user")
+    .setExample(`
         $userTag // returns the tag of the author
 
         $userTag[123456789012345678] // returns the tag of the user with id 123456789012345678
-    `,
-    code: (data, scope) => {
-        const currentScope = scope[scope.length - 1];
+    `);
 
-        const userTag = data.inside ? `(await __$DISCORD_DATA$__.bot.util.getUser(${parseResult(data.inside)}))?.tag` : "__$DISCORD_DATA$__.author?.tag";
+userTag.setCode((data, scope, thisArg) => {
+    const currentScope = thisArg.getCurrentScope(scope);
 
-        const res = escapeResult(`(${userTag})`);
-        currentScope.update(res, data);
-        return {
-            code: res,
-            scope,
-        };
-    },
-};
+    const userTag = data.inside ? `(await __$DISCORD_DATA$__.bot.util.getUser(${parseResult(data.inside)}))?.tag` : "__$DISCORD_DATA$__.author?.tag";
+
+    const res = escapeResult(`(${userTag})`);
+    currentScope.update(res, data);
+    return {
+        code: res,
+        scope,
+    };
+}, userTag);
+
+export const $userTag = userTag.build();

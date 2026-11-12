@@ -1,37 +1,40 @@
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError } from "../../../index.js";
-import { FunctionData } from "../../../typings/interfaces.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
-export const $userId: FunctionData = {
-    name: "$userId",
-    type: "getter",
-    brackets: true,
-    optional: false,
-    fields: [{ name: "username", type: "string", required: true,description: "The username of the user" }],
-    version: "7.0.0",
-    default: ["void"],
-    returns: "bigint",
-    description: "Returns the id of the user ( provided user should have mutual servers with the bot )",
-    example: `
+const userId = new AoiJSFunction()
+    .setName("$userId")
+    .setType(FunctionType.Getter)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([{ name: "username", type: "string", required: true,description: "The username of the user" }])
+    .setVersion("7.0.0")
+    .setDefault(["void"])
+    .setReturns("bigint")
+    .setDescription("Returns the id of the user ( provided user should have mutual servers with the bot )")
+    .setExample(`
         $userId[leref] // returns the id of the user with provided username
-        `,
-    code: (data, scope) => {
-        const currentScope = scope[scope.length - 1];
-        const name = data.inside;
-        if (
-            name === "" &&
+        `);
+
+userId.setCode((data, scope, thisArg) => {
+    const currentScope = thisArg.getCurrentScope(scope);
+    const name = data.inside;
+    if (
+        name === "" &&
             !currentScope.name.startsWith("$try_") &&
             !currentScope.name.startsWith("$catch_")
-        ) {
-            throw new TranspilerError(`${data.name} requires a username.`);
-        }
-        const userId = `(await __$DISCORD_DATA$__.bot.util.findUser(\`${name}\`))?.id`;
+    ) {
+        throw new TranspilerError(`${data.name} requires a username.`);
+    }
+    const userId = `(await __$DISCORD_DATA$__.bot.util.findUser(\`${name}\`))?.id`;
 
-        const res = escapeResult(`(${userId})`);
-        currentScope.update(res, data);
-        return {
-            code: res,
-            scope,
-        };
-    },
-};
+    const res = escapeResult(`(${userId})`);
+    currentScope.update(res, data);
+    return {
+        code: res,
+        scope,
+    };
+}, userId);
+
+export const $userId = userId.build();

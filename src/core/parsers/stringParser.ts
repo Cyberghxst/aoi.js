@@ -1,74 +1,49 @@
 import { BundlerCustoms, TranspilerCustoms } from "../../typings/enums.js";
 import Block from "../structs/Block.js";
 
+/**
+ * Builds a nesting tree of {@link Block}s from raw text.
+ *
+ * `#FUNCTION_START#` / `#FUNCTION_END#` (and the math equivalents) delimit
+ * generated code that must become a `${...}` interpolation inside the final
+ * template literal, so each marker pair opens a nested block instead of
+ * being left as plain text.
+ */
 export function createStringAST(text: string) {
     let block = new Block(-1, true);
     let i = 0;
-    let res = "";
-    // const stack: number[] = [];
-    // while (i <= text.length) {
-    //     if (res.includes("#FUNCTION_START#")) {
-    //         stack.push(i - 15);
-    //         res = text[i];
-    //     } else if (res.includes("#FUNCTION_END#")) {
-    //         const a = stack.pop();
-    //         if (!a) {
-    //             stack.push(i - 13);
-    //         }
-    //         res = text[i];
-    //     } else if(res.includes(TranspilerCustoms.MFS)) {
-    //         stack.push(i - TranspilerCustoms.MFS.length-1);
-    //         res = text[i];
-    //     } else if(res.includes(TranspilerCustoms.MFE)) {
-    //         const a = stack.pop();
-    //         if (!a) {
-    //             stack.push(i - TranspilerCustoms.MFE.length-1);
-    //         }
-    //         res = text[i];
-    //     }
-    //     else {
-    //         res += text[i];
-    //     }
-    //     i++;
-    // }
-    // if (stack.length) {
-    //     stack;
-    //     stack.forEach((x) => {
-    //         text = text.substring(0, x - 1) + text.slice(x + 15, text.length);
-    //     });
-    // }
+    let buffer = "";
     i = 0;
-    res = "";
+    buffer = "";
     while (i <= text.length) {
-        if (res.includes("#FUNCTION_START#")) {
+        if (buffer.includes("#FUNCTION_START#")) {
             const nest = new Block(block.nest.length, false, block);
             block.text = block.text.replace("#FUNCTION_START#", "");
             block.add(`#NEST_POSITION_${block.nest.length}#`);
             block.addBlock(nest);
             block = nest;
             block.add(text[i]);
-            res = text[i] ?? "";
-        } else if (res.includes("#FUNCTION_END#")) {
+            buffer = text[i] ?? "";
+        } else if (buffer.includes("#FUNCTION_END#")) {
             block.text = block.text.replace("#FUNCTION_END#", "");
             block = block.parent ? block.parent : block;
             block.add(text[i] ?? "");
-            res = text[i] ?? "";
-        } else if(res.includes(TranspilerCustoms.MFS)) {
+            buffer = text[i] ?? "";
+        } else if (buffer.includes(TranspilerCustoms.MFS)) {
             const nest = new Block(block.nest.length, false, block);
             block.text = block.text.replace(TranspilerCustoms.MFS, "");
             block.add(`#NEST_POSITION_${block.nest.length}#`);
             block.addBlock(nest);
             block = nest;
             block.add(text[i]);
-            res = text[i] ?? "";
-        } else if(res.includes(TranspilerCustoms.MFE)) {
+            buffer = text[i] ?? "";
+        } else if (buffer.includes(TranspilerCustoms.MFE)) {
             block.text = block.text.replace(TranspilerCustoms.MFE, "");
             block = block.parent ? block.parent : block;
             block.add(text[i] ?? "");
-            res = text[i] ?? "";
-        }
-        else {
-            res += text[i];
+            buffer = text[i] ?? "";
+        } else {
+            buffer += text[i];
             block.add(text[i] ?? "");
         }
         i++;
@@ -76,9 +51,11 @@ export function createStringAST(text: string) {
     return block;
 }
 
+/**
+ * Parses raw text into a JavaScript template literal, nesting generated
+ * function calls as `${...}` interpolations.
+ */
 export function parseString(text: string) {
     const ast = createStringAST(text);
-    return ast.parse().replaceAll(BundlerCustoms.EJS ,`\${${BundlerCustoms.EJS}}`);
+    return ast.parse().replaceAll(BundlerCustoms.EJS, `\${${BundlerCustoms.EJS}}`);
 }
-
-//console.log(parseString("#FUNCTION_START#__$DISCORD_DATA__#FUNCTION_END#"))

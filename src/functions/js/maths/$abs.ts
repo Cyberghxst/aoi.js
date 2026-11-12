@@ -1,58 +1,60 @@
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError } from "../../../core/error.js";
-import { TranspilerCustoms } from "../../../typings/enums.js";
-import { FunctionData } from "../../../typings/interfaces.js";
+import { FunctionType, TranspilerCustoms } from "../../../typings/enums.js";
 import {
     escapeMathResult,
     parseResult,
 } from "../../../util/transpilerHelpers.js";
 
-export const $abs: FunctionData = {
-    name: "$abs",
-    type: "getter",
-    brackets: true,
-    optional: false,
-    fields: [
+const abs = new AoiJSFunction()
+    .setName("$abs")
+    .setType(FunctionType.Getter)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([
         {
             name: "number",
             type: "number",
             description: "The number to get the absolute value from",
             required: true,
         },
-    ],
-    version: "7.0.0",
-    default: ["void"],
-    returns: "number",
-    description: "Returns the Absolute value of the number",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["void"])
+    .setReturns("number")
+    .setDescription("Returns the Absolute value of the number")
+    .setExample(`
     $abs[1] // returns 1
     $abs[-1] // returns 1
-    `,
-    code: (data, scope) => {
-        const numbers = data.inside;
-        const currentScope = scope[scope.length - 1];
-        if (
-            data.splits.length === 0 &&
+    `);
+
+abs.setCode((data, scope, thisArg) => {
+    const numbers = data.inside;
+    const currentScope = thisArg.getCurrentScope(scope);
+    if (
+        data.splits.length === 0 &&
             !currentScope.name.startsWith("$try_") &&
             !currentScope.name.startsWith("$catch_")
-        ) {
-            throw new TranspilerError(
-                `${data.name} requires at least 1 argument`,
-            );
-        }
-        if(!numbers) throw new TranspilerError(`${data.name} requires at least 1 argument`);
-        let abs =
+    ) {
+        throw new TranspilerError(
+            `${data.name} requires at least 1 argument`,
+        );
+    }
+    if(!numbers) throw new TranspilerError(`${data.name} requires at least 1 argument`);
+    let abs =
             numbers.includes( TranspilerCustoms.FS ) ||
                 numbers.includes( "__$DISCORD_DATA$__" ) ||
                 numbers.includes( TranspilerCustoms.MFS )
                 ? parseResult( numbers.trim() )
                 : Number( numbers );
-        abs = `Math.abs(${abs})`;
+    abs = `Math.abs(${abs})`;
 
-        const res = escapeMathResult(`(${abs})`);
-        currentScope.update(res, data);
-        return {
-            code: res,
-            scope,
-        };
-    },
-};
+    const res = escapeMathResult(`(${abs})`);
+    currentScope.update(res, data);
+    return {
+        code: res,
+        scope,
+    };
+}, abs);
+
+export const $abs = abs.build();

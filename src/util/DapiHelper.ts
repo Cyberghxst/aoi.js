@@ -4,7 +4,7 @@ import { autoFetchDataTypes } from "../typings/types.js";
 
 /**
  * Checks if the autoFetchData is enabled for the given string
- * @param {autoFetchDataTypes} string The string to check
+ * @param {autoFetchDataTypes} dataType The string to check
  * @param {AoiClient} client The client
  * @returns {boolean}
  * @example
@@ -13,16 +13,15 @@ import { autoFetchDataTypes } from "../typings/types.js";
  * ```
  */
 export function isAutoFetchDataEnabled(
-    string: autoFetchDataTypes,
+    dataType: autoFetchDataTypes,
     client: AoiClient,
 ) {
-    if (!string) return false;
-    if (
-        client.options.autoFetchData?.includes(string) ||
-        client.options.autoFetchData?.includes("all")
-    )
-        return true;
-    else return false;
+    if (!dataType) return false;
+    return (
+        client.options.autoFetchData?.includes(dataType) ||
+        client.options.autoFetchData?.includes("all") ||
+        false
+    );
 }
 
 /**

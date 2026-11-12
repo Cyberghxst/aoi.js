@@ -1,5 +1,5 @@
+import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import {
-    FunctionData,
     funcData,
     Scope,
     TranspilerError,
@@ -12,13 +12,14 @@ import {
     escapeResult,
     parseData,
 } from "../../../util/transpilerHelpers.js";
+import { FunctionType } from "../../../typings/enums.js";
 
-export const $case: FunctionData = {
-    name: "$case",
-    brackets: true,
-    optional: false,
-    type: "scope",
-    fields: [
+const caseFunction = new AoiJSFunction()
+    .setName("$case")
+    .setType(FunctionType.Scope)
+    .setBrackets(true)
+    .setOptional(false)
+    .setFields([
         {
             name: "case",
             type: "string",
@@ -31,12 +32,12 @@ export const $case: FunctionData = {
             description: "The code to execute if the case is true",
             required: true,
         },
-    ],
-    version: "7.0.0",
-    default: ["void", "void"],
-    returns: "void",
-    description: "Case statement",
-    example: `
+    ])
+    .setVersion("7.0.0")
+    .setDefault(["void", "void"])
+    .setReturns("void")
+    .setDescription("Case statement")
+    .setExample(`
     $let[num;1]
     $switch[$get[num];
         $case[1;
@@ -49,101 +50,103 @@ export const $case: FunctionData = {
             $log[hello world default]
         ]
     ]
-    `,
-    code: (data: funcData, scope: Scope[]) => {
-        const splits = data.splits;
-        const currentScope = scope[scope.length - 1];
-        if ($case.brackets) {
-            if (
-                !data.total.startsWith($case.name + "[") &&
+    `);
+
+caseFunction.setCode((data: funcData, scope: Scope[], thisArg) => {
+    const splits = data.splits;
+    const currentScope = thisArg.getCurrentScope(scope);
+    if (thisArg.brackets) {
+        if (
+            !data.total.startsWith(thisArg.name + "[") &&
                 (!currentScope.name.startsWith("$try_") ||
                     !currentScope.name.startsWith("$catch_"))
-            ) {
-                throw new TranspilerError(
-                    `${data.name} requires closure brackets`,
-                );
-            }
+        ) {
+            throw new TranspilerError(
+                `${data.name} requires closure brackets`,
+            );
         }
-        const [ caseValue, ...errorMsg ] = splits;
+    }
+    const [ caseValue, ...errorMsg ] = splits;
 
-        const caseFunctionList = getFunctionList(
-            caseValue,
-            Object.keys( funcs ),
-        );
-        let exeCaseValue,parsedCase;
-        if ( caseFunctionList.length )
-        {
-            exeCaseValue = Transpiler(caseValue, {
-                sendMessage: false,
-                scopeData: {
-                    variables: currentScope.variables,
-                    name: currentScope.name,
-                    objects: currentScope.objects,
-                    env: currentScope.env,
-                },
-                client: currentScope.client,
-            });
-            currentScope.functions += exeCaseValue.scope[ 0 ].functions + "\n";
-            currentScope.packages += exeCaseValue.scope[ 0 ].packages;
-            exeCaseValue = exeCaseValue.code;
-            parsedCase = parseData( exeCaseValue );
-        }
-        else
-        {
-            exeCaseValue = caseValue;
-            parsedCase = parseData(exeCaseValue);
-            typeof parsedCase === "string" &&
+    const caseFunctionList = getFunctionList(
+        caseValue,
+        Object.keys( funcs ),
+    );
+    let exeCaseValue,parsedCase;
+    if ( caseFunctionList.length )
+    {
+        exeCaseValue = Transpiler(caseValue, {
+            sendMessage: false,
+            scopeData: {
+                variables: currentScope.variables,
+                name: currentScope.name,
+                objects: currentScope.objects,
+                env: currentScope.env,
+            },
+            client: currentScope.client,
+        });
+        currentScope.functions += exeCaseValue.scope[ 0 ].functions + "\n";
+        currentScope.packages += exeCaseValue.scope[ 0 ].packages;
+        exeCaseValue = exeCaseValue.code;
+        parsedCase = parseData( exeCaseValue );
+    }
+    else
+    {
+        exeCaseValue = caseValue;
+        parsedCase = parseData(exeCaseValue);
+        typeof parsedCase === "string" &&
                 (parsedCase = parseString(parsedCase));
-        }
+    }
 
-        const hash = Math.floor(Math.random() * 100000);
-        const newscope = new Scope(
-            `${data.name}_${hash}`,
-            currentScope.client,
-            currentScope.name,
-            errorMsg.join(";"),
-            true,
-        );
+    const hash = Math.floor(Math.random() * 100000);
+    const newscope = new Scope(
+        `${data.name}_${hash}`,
+        currentScope.client,
+        currentScope.name,
+        errorMsg.join(";"),
+        true,
+    );
 
-        let executedErrorMsg;
-        const errorMsgFunctionList = getFunctionList(
-            errorMsg.join(";"),
-            Object.keys(funcs),
-        );
-        if (errorMsgFunctionList.length) {
-            executedErrorMsg = Transpiler(errorMsg.join(";"), {
-                sendMessage: true,
-                scopeData: {
-                    variables: currentScope.variables,
-                    embeds: currentScope.embeds,
-                    name: currentScope.name,
-                    objects: currentScope.objects,
-                    env: currentScope.env,
-                },
-                client: currentScope.client,
-                minify: true,
-            });
-            newscope.functions = executedErrorMsg.scope[0].functions + "\n";
-            newscope.packages = executedErrorMsg.scope[0].packages + "\n";
-            newscope.setters = executedErrorMsg.scope[0].setters + "\n";
-            executedErrorMsg.scope[0].addReturn = true;
-            newscope.rest = executedErrorMsg.scope[0].rest + "\n";
-            newscope.sendData = executedErrorMsg.scope[0].sendData;
-        } else {
-            executedErrorMsg = errorMsg.join(";");
-            newscope.rest = executedErrorMsg + "\n";
-            newscope.sendData.content = executedErrorMsg;
-        }
-        const res = escapeResult(`
+    let executedErrorMsg;
+    const errorMsgFunctionList = getFunctionList(
+        errorMsg.join(";"),
+        Object.keys(funcs),
+    );
+    if (errorMsgFunctionList.length) {
+        executedErrorMsg = Transpiler(errorMsg.join(";"), {
+            sendMessage: true,
+            scopeData: {
+                variables: currentScope.variables,
+                embeds: currentScope.embeds,
+                name: currentScope.name,
+                objects: currentScope.objects,
+                env: currentScope.env,
+            },
+            client: currentScope.client,
+            minify: true,
+        });
+        newscope.functions = executedErrorMsg.scope[0].functions + "\n";
+        newscope.packages = executedErrorMsg.scope[0].packages + "\n";
+        newscope.setters = executedErrorMsg.scope[0].setters + "\n";
+        executedErrorMsg.scope[0].addReturn = true;
+        newscope.rest = executedErrorMsg.scope[0].rest + "\n";
+        newscope.sendData = executedErrorMsg.scope[0].sendData;
+    } else {
+        executedErrorMsg = errorMsg.join(";");
+        newscope.rest = executedErrorMsg + "\n";
+        newscope.sendData.content = executedErrorMsg;
+    }
+    const res = escapeResult(`
     case ${parsedCase}:
       ${newscope.toString()}
       break;
     `);
-        currentScope.update( res, data );
-        return {
-            code: res,
-            scope: scope,
-            data,
-        };
-    },
-};
+    currentScope.update( res, data );
+    return {
+        code: res,
+        scope: scope,
+        data,
+    };
+}, caseFunction);
+
+export const $case = caseFunction.build();
