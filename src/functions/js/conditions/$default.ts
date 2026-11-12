@@ -10,7 +10,7 @@ import {
     getFunctionList,
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const defaultFunction = new AoiJSFunction()
     .setName("$default")
@@ -27,7 +27,7 @@ const defaultFunction = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("Default case statement")
     .setExample(`
         $let[num;1]
@@ -103,12 +103,7 @@ defaultFunction.setCode((data: funcData, scope: Scope[], thisArg) => {
       ${newscope.toString()}
       break;
     `);
-    currentScope.update( res, data );
-    return {
-        code: res,
-        scope: scope,
-        data,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, defaultFunction);
 
 export const $default = defaultFunction.build();

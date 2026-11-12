@@ -5,7 +5,7 @@ import {
     convertToBool,
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const evalFunction = new AoiJSFunction()
     .setName("$eval")
@@ -28,7 +28,7 @@ const evalFunction = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void"])
-    .setReturns("any")
+    .setReturns(ReturnType.Any)
     .setDescription("Evaluates the aoi.js code")
     .setExample(`
     $eval[true;$ping] // sends the ping to the channel

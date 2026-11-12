@@ -1,6 +1,6 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError } from "../../../core/error.js";
-import { FunctionType, TranspilerCustoms } from "../../../typings/enums.js";
+import { FunctionType, ReturnType, TranspilerCustoms } from "../../../typings/enums.js";
 import { escapeMathResult, parseResult } from "../../../util/transpilerHelpers.js";
 
 const sum = new AoiJSFunction()
@@ -18,7 +18,7 @@ const sum = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("number")
+    .setReturns(ReturnType.Number)
     .setDescription("Returns the sum of the numbers")
     .setExample(`
     $sum[1;2] // returns 3
@@ -48,11 +48,7 @@ sum.setCode((data, scope, thisArg) => {
         .join("+");
 
     const res = escapeMathResult(`(${sum})`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, sum);
 
 export const $sum = sum.build();

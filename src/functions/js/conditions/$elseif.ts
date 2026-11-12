@@ -8,7 +8,7 @@ import {
 } from "../../../index.js";
 import funcs from "../../index.js";
 import { getFunctionList, escapeFunctionResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const elseIf = new AoiJSFunction()
     .setName("$elseIf")
@@ -31,7 +31,7 @@ const elseIf = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", ""])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("Else if statement")
     .setExample(`
         $if[$ping<100;
@@ -127,12 +127,7 @@ elseIf.setCode((data: funcData, scope: Scope[], thisArg) => {
       ${newscope.toString()}
     }
     `);
-    currentScope.update( res, data );
-    return {
-        code: res,
-        scope: scope,
-        data,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, elseIf);
 
 export const $elseIf = elseIf.build();

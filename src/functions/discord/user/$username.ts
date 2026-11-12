@@ -2,7 +2,7 @@ import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import {
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const username = new AoiJSFunction()
     .setName("$username")
@@ -18,7 +18,7 @@ const username = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("string")
+    .setReturns(ReturnType.String)
     .setDescription("Returns the name of the user")
     .setExample(`
         $username[$authorId] // returns the name of the author
@@ -27,18 +27,13 @@ const username = new AoiJSFunction()
     `);
 
 username.setCode((data, scope, thisArg) => {
-    const currentScope = thisArg.getCurrentScope(scope);
 
     const id = data.inside;
 
     const username = `(await __$DISCORD_DATA$__.bot.util.getUser(${id}))?.username`;
 
     const res = escapeResult(`(${username})`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, username);
 
 export const $username = username.build();

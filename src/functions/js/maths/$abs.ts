@@ -1,6 +1,6 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError } from "../../../core/error.js";
-import { FunctionType, TranspilerCustoms } from "../../../typings/enums.js";
+import { FunctionType, ReturnType, TranspilerCustoms } from "../../../typings/enums.js";
 import {
     escapeMathResult,
     parseResult,
@@ -21,7 +21,7 @@ const abs = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("number")
+    .setReturns(ReturnType.Number)
     .setDescription("Returns the Absolute value of the number")
     .setExample(`
     $abs[1] // returns 1
@@ -50,11 +50,7 @@ abs.setCode((data, scope, thisArg) => {
     abs = `Math.abs(${abs})`;
 
     const res = escapeMathResult(`(${abs})`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, abs);
 
 export const $abs = abs.build();

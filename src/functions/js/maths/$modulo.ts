@@ -1,6 +1,6 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError } from "../../../core/error.js";
-import { FunctionType, TranspilerCustoms } from "../../../typings/enums.js";
+import { FunctionType, ReturnType, TranspilerCustoms } from "../../../typings/enums.js";
 import {
     escapeMathResult,
     parseResult,
@@ -21,7 +21,7 @@ const modulo = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("number")
+    .setReturns(ReturnType.Number)
     .setDescription("Returns the modulo of the numbers")
     .setExample(`
     $modulo[1;2] // returns 1
@@ -51,11 +51,7 @@ modulo.setCode((data, scope, thisArg) => {
         .join("%");
 
     const res = escapeMathResult(`(${modulo})`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, modulo);
 
 export const $modulo = modulo.build();

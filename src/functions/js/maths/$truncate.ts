@@ -1,6 +1,6 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError } from "../../../core/error.js";
-import { FunctionType, TranspilerCustoms } from "../../../typings/enums.js";
+import { FunctionType, ReturnType, TranspilerCustoms } from "../../../typings/enums.js";
 import {
     escapeMathResult,
     parseResult,
@@ -21,7 +21,7 @@ const truncate = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("number")
+    .setReturns(ReturnType.Number)
     .setDescription("Returns the Truncate off value of the number")
     .setExample(`
     $truncate[1.22342] // returns 1
@@ -53,11 +53,7 @@ truncate.setCode((data, scope, thisArg) => {
     truncate = `(Math.trunc(${truncate}))`;
 
     const res = escapeMathResult(`(${truncate})`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, truncate);
 
 export const $truncate = truncate.build();

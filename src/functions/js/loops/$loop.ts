@@ -10,7 +10,7 @@ import {
     getFunctionList,
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 import funcs from "../../index.js";
 
 const loop = new AoiJSFunction()
@@ -40,7 +40,7 @@ const loop = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void", "void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("Loop statement")
     .setExample(`
         $loop[5;{name: hello, age: 12};$log[hello world]]
@@ -132,8 +132,7 @@ for(let loop_index = 0; loop_index < ${times}; loop_index++) {
 }
 }
 `);
-    currentScope.update(res, data);
-    return { code: res, scope: scope, data };
+    return thisArg.finishResult(scope, data, res);
 }, loop);
 
 export const $loop = loop.build();

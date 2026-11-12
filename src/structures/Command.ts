@@ -1,5 +1,6 @@
 import { CommandOptions } from "../typings/interfaces.js";
 import { AsyncFunction, CommandTypes } from "../typings/types.js";
+import { ExecuteAt } from "../typings/enums.js";
 import { Transpiler } from "../core/transpiler.js";
 import { AoiClient } from "./AoiClient.js";
 import { Snowflake } from "zeneth";
@@ -22,7 +23,7 @@ export class Command {
     channel?: string | Snowflake;
     __path__: string;
     reverseRead?: boolean;
-    executeAt?: "guild" | "dm" | "both";
+    executeAt?: ExecuteAt;
     __compiled__: AsyncFunction;
     [key: string]: unknown;
     constructor(data: CommandOptions, client: AoiClient) {
@@ -31,7 +32,7 @@ export class Command {
         this.code = data.code;
         this.aliases = data.aliases;
         this.__path__ = data.__path__;
-        this.executeAt = data.executeAt ?? "both";
+        this.executeAt = data.executeAt ?? ExecuteAt.Both;
         this.reverseRead = data.reverseRead ?? false;
 
         for (const key in data) {

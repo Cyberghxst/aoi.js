@@ -2,7 +2,7 @@ import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { funcData, TranspilerError } from "../../../index.js";
 import Scope from "../../../core/structs/Scope.js";
 import { escapeFunctionResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const inc = new AoiJSFunction()
     .setName("$inc")
@@ -25,7 +25,7 @@ const inc = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "++"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("Increments the variable")
     .setExample("$inc[$get[i]]");
 
@@ -46,11 +46,7 @@ inc.setCode((data: funcData, scope: Scope[], thisArg) => {
     const res = escapeFunctionResult(
         `${variable}${incrementFunctionString};`,
     );
-    currentScope.update( res, data );
-    return {
-        code: res,
-        scope: scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, inc);
 
 export const $inc = inc.build();

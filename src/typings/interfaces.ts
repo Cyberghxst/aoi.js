@@ -37,12 +37,11 @@ import Scope from "../core/structs/Scope.js";
 import {
     AsyncFunction,
     CommandTypes,
-    PluginType,
     autoFetchDataTypes,
 } from "./types.js";
 import { AoiClient } from "../index.js";
 import { Command } from "../structures/Command.js";
-import { FunctionType } from "./enums.js";
+import { ExecuteAt, FunctionType, PluginType } from "./enums.js";
 
 /** The full definition of one $function, as produced by the `AoiJSFunction` builder. */
 export interface FunctionData {
@@ -133,7 +132,7 @@ export interface CommandOptions {
     code: string | AsyncFunction;
     aliases?: string[];
     reverseRead?: boolean;
-    executeAt?: "guild" | "dm" | "both";
+    executeAt?: ExecuteAt;
     __path__: string;
     [key: string]: unknown;
 }

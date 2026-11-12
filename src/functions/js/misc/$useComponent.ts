@@ -5,7 +5,7 @@ import { funcData } from "../../../typings/interfaces.js";
 import {
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const useComponent = new AoiJSFunction()
     .setName("$useComponent")
@@ -28,7 +28,7 @@ const useComponent = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "undefined"])
-    .setReturns("any")
+    .setReturns(ReturnType.Any)
     .setDescription("use a component in the code")
     .setExample(`
         $useComponent[hello;{hello: world}] // executes the component hello with the data {hello: world}
@@ -51,11 +51,7 @@ useComponent.setCode((data: funcData, scope: Scope[], thisArg) => {
           `
     );
 
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, useComponent);
 
 export const $useComponent = useComponent.build();

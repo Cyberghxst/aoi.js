@@ -2,7 +2,7 @@ import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import {
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const authorTag = new AoiJSFunction()
     .setName("$authorTag")
@@ -12,21 +12,16 @@ const authorTag = new AoiJSFunction()
     .setFields([])
     .setVersion("7.0.0")
     .setDefault([])
-    .setReturns("string")
+    .setReturns(ReturnType.String)
     .setDescription("Returns the tag of the author")
     .setExample("author tag is `$authorTag`");
 
 authorTag.setCode((data, scope, thisArg) => {
-    const currentScope = thisArg.getCurrentScope(scope);
 
     const authorTag = "__$DISCORD_DATA$__.author?.tag";
 
     const res = escapeResult(`(${authorTag})`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, authorTag);
 
 export const $authorTag = authorTag.build();

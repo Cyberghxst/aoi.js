@@ -8,7 +8,7 @@ import {
 } from "../../../util/transpilerHelpers.js";
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { InteractionResponseTypes, Snowflake } from "zeneth";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const interactionReply = new AoiJSFunction()
     .setName("$interactionReply")
@@ -31,7 +31,7 @@ const interactionReply = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "false"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("replies to the interaction").setExample(`
         $interactionReply[hello world] // replies with "hello world"
 
@@ -117,12 +117,7 @@ interactionReply.setCode((data, scope, thisArg) => {
     );
 
     const res = escapeResult(resultString as string);
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, interactionReply);
 
 export const $interactionReply = interactionReply.build();

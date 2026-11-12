@@ -1,6 +1,6 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError } from "../../../core/error.js";
-import { FunctionType, TranspilerCustoms } from "../../../typings/enums.js";
+import { FunctionType, ReturnType, TranspilerCustoms } from "../../../typings/enums.js";
 import {
     escapeMathResult,
     parseResult,
@@ -21,7 +21,7 @@ const divide = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("number")
+    .setReturns(ReturnType.Number)
     .setDescription("Returns the division of the numbers")
     .setExample(`
     $divide[1;2] // returns 0.5
@@ -51,11 +51,7 @@ divide.setCode((data, scope, thisArg) => {
         .join("/");
 
     const res = escapeMathResult(`(${divide})`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, divide);
 
 export const $divide = divide.build();

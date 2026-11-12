@@ -1,6 +1,6 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const clientPrefixes = new AoiJSFunction()
     .setName("$clientPrefixes")
@@ -10,13 +10,12 @@ const clientPrefixes = new AoiJSFunction()
     .setFields([])
     .setVersion("7.0.0")
     .setDefault([])
-    .setReturns("string")
+    .setReturns(ReturnType.String)
     .setDescription("Returns the Prefixes of client").setExample(`
 $clientPrefixes // returns the Prefixes of client
     `);
 
 clientPrefixes.setCode((data, scope, thisArg) => {
-    const currentScope = thisArg.getCurrentScope(scope);
     const resultString = thisArg.getResultString(
         (discord) =>
             Array.isArray(discord.bot.options.prefixes)
@@ -25,12 +24,7 @@ clientPrefixes.setCode((data, scope, thisArg) => {
         [],
     );
     const res = escapeResult(resultString as string);
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, clientPrefixes);
 
 export const $clientPrefixes = clientPrefixes.build();

@@ -7,7 +7,7 @@ import {
     removeFF,
     removeMF,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 // function to check if a expression is valid js math expression
 function isMathExpression(expression: string): boolean {
@@ -89,7 +89,7 @@ const math = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("number")
+    .setReturns(ReturnType.Number)
     .setDescription("evaluates a math expression")
     .setExample(`
     $math[1 + 1] // returns 2
@@ -124,11 +124,7 @@ math.setCode((data, scope, thisArg) => {
         );
     }
     const res = escapeMathResult(`(${parseResult(math)})`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, math);
 
 export const $math = math.build();

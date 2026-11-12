@@ -2,7 +2,7 @@ import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { funcData, Scope, TranspilerError, Transpiler, conditionLexer } from "../../../index.js";
 import funcs from "../../index.js";
 import { getFunctionList, escapeFunctionResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const ifFunction = new AoiJSFunction()
     .setName("$if")
@@ -25,7 +25,7 @@ const ifFunction = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("If statement")
     .setExample(`
         $if[$ping<100;
@@ -123,12 +123,7 @@ ifFunction.setCode((data: funcData, scope: Scope[], thisArg) => {
       ${newscope.toString()}
     }
     `);
-    currentScope.update( res, data );
-    return {
-        code: res,
-        scope: scope,
-        data,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, ifFunction);
 
 export const $if = ifFunction.build();

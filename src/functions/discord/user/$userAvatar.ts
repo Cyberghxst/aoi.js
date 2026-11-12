@@ -2,7 +2,7 @@ import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import {
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const userAvatar = new AoiJSFunction()
     .setName("$userAvatar")
@@ -40,7 +40,7 @@ const userAvatar = new AoiJSFunction()
         "true",
         "'png'",
     ])
-    .setReturns("string")
+    .setReturns(ReturnType.String)
     .setDescription("Returns the avatar of the user")
     .setExample(`
         $userAvatar // returns the avatar of the user
@@ -49,18 +49,13 @@ const userAvatar = new AoiJSFunction()
     `);
 
 userAvatar.setCode((data, scope, thisArg) => {
-    const currentScope = thisArg.getCurrentScope(scope);
 
     const [id,size=1024,dynamic=true,format="'png'"] = data.splits;
 
     const avatar = `(await __$DISCORD_DATA$__.bot.util.getUser(${id}))?.avatarUrl({size: ${size}, dynamic: ${dynamic}, format: ${format} }`;
 
     const res = escapeResult(`${avatar}`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, userAvatar);
 
 export const $userAvatar = userAvatar.build();

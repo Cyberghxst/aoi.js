@@ -12,7 +12,7 @@ import {
     escapeResult,
     getFunctionList,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const jsonRequest = new AoiJSFunction()
     .setName("$jsonRequest")
@@ -47,7 +47,7 @@ const jsonRequest = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "undefined", "{}", "{status}: {error}"])
-    .setReturns("string")
+    .setReturns(ReturnType.String)
     .setDescription("Returns the response of a json GET request")
     .setExample(
         `
@@ -123,16 +123,11 @@ jsonRequest.setCode((data: funcData, scope: Scope[], thisArg) => {
         }))
     `);
 
-    currentScope.update(res, data);
     currentScope.functions += newscope.functions;
     currentScope.packages += newscope.packages;
     data.funcs = [];
 
-    return {
-        code: res,
-        scope,
-        data,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, jsonRequest);
 
 export const $jsonRequest = jsonRequest.build();

@@ -5,7 +5,7 @@ import Scope from "../../../core/structs/Scope.js";
 import { parseString } from "../../../core/parsers/stringParser.js";
 import { funcData } from "../../../typings/interfaces.js";
 import { escapeFunctionResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const log = new AoiJSFunction()
     .setName("$log")
@@ -22,7 +22,7 @@ const log = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("Logs the text")
     .setExample(`
         $log[hello world] // logs hello world
@@ -60,8 +60,7 @@ log.setCode((data: funcData, scope: Scope[], thisArg) => {
     }
     const parsedText = parseString(fixMath(text));
     const res = `${escapeFunctionResult(`console.log(${parsedText});`)}`;
-    currentScope.update(res, data);
-    return { code: res, scope: scope, data };
+    return thisArg.finishResult(scope, data, res);
 }, log);
 
 export const $log = log.build();

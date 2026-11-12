@@ -184,6 +184,33 @@ export function escapeFunctionResult(result: string) {
 }
 
 /**
+ * Throws unless the named variable exists in the given scope. Variables
+ * created inside `$try`/`$catch` scopes are exempt because they are only
+ * known at runtime. The caller supplies the error message so each
+ * function keeps its own wording.
+ * @param {Scope} scope - The scope to look the variable up in.
+ * @param {string} name - The variable name to check.
+ * @param {string} message - The error message to throw when it is missing.
+ * @example
+ * ```js
+ * assertVariableExists(currentScope, "myArray", "$arrayMap: Variable myArray does not exists")
+ * ```
+ */
+export function assertVariableExists(
+    scope: Scope,
+    name: string,
+    message: string,
+): void {
+    if (
+        !scope.variables.includes(name) &&
+            !scope.name.startsWith("$try_") &&
+            !scope.name.startsWith("$catch_")
+    ) {
+        throw new TranspilerError(message);
+    }
+}
+
+/**
  * Generates data of the given function in the given code.
  * @param {string} code - The code to generate the function data in.
  * @param {string} func - The function to generate the data of.

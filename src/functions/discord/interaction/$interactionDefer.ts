@@ -3,7 +3,7 @@
 import { InteractionResponseTypes, MessageFlags, Snowflake } from "zeneth";
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const interactionDefer = new AoiJSFunction()
     .setName("$interactionDefer")
@@ -20,7 +20,7 @@ const interactionDefer = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["false"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription(
         "defers the interaction from initial 3 seconds response time limit to 15 minutes",
     ).setExample(`
@@ -30,7 +30,6 @@ const interactionDefer = new AoiJSFunction()
     `);
 
 interactionDefer.setCode((data, scope, thisArg) => {
-    const currentScope = thisArg.getCurrentScope(scope);
     //code here
 
     const ephemeral = data.inside ?? "false";
@@ -55,12 +54,7 @@ interactionDefer.setCode((data, scope, thisArg) => {
     );
 
     const res = escapeResult(resultString);
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, interactionDefer);
 
 export const $interactionDefer = interactionDefer.build();

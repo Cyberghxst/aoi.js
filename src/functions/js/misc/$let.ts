@@ -2,7 +2,7 @@ import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError } from "../../../core/error.js";
 import { parseString } from "../../../core/parsers/stringParser.js";
 import Scope from "../../../core/structs/Scope.js";
-import { FunctionType, TranspilerCustoms } from "../../../typings/enums.js";
+import { FunctionType, ReturnType, TranspilerCustoms } from "../../../typings/enums.js";
 import { funcData } from "../../../typings/interfaces.js";
 import {
     escapeVars,
@@ -32,7 +32,7 @@ const letFunction = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("Sets the value of the variable")
     .setExample(`
         $let[hello;world] // sets the variable hello to world

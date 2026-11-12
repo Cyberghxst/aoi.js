@@ -118,6 +118,22 @@ export default class Scope {
             }
         }
     }
+    /**
+     * Recomputes whether this scope has anything to send (non-empty message
+     * content, embeds, files or stickers) from already-assembled content.
+     * The content must already have its newlines replaced with the
+     * transpiler's newline marker, as the callers do before calling this.
+     */
+    updateHasSendData(content: string) {
+        if (
+            content.replaceAll(TranspilerCustoms.NL, "").trim() !== "" ||
+            this.embeds.length ||
+            this.files.length ||
+            this.stickers.length
+        )
+            this.hasSendData = true;
+        else this.hasSendData = false;
+    }
     toString(sendMessage = true) {
         const sendPayload: Record<string, string> = { ...this.sendData };
         sendPayload.embeds = escapeResult(escapeVars(`${this.name}_embeds`));
@@ -129,15 +145,7 @@ export default class Scope {
         sendPayload.content = sendPayload.content
             .replaceAll("\n", TranspilerCustoms.NL)
             .replaceAll(BundlerCustoms.EJS, "");
-        if (
-            sendPayload.content.replaceAll(TranspilerCustoms.NL, "").trim() !==
-                "" ||
-            this.embeds.length ||
-            this.files.length ||
-            this.stickers.length
-        )
-            this.hasSendData = true;
-        else this.hasSendData = false;
+        this.updateHasSendData(sendPayload.content);
 
         let parsedContent = parseString(
             sendPayload.content.replaceAll(TranspilerCustoms.NL, "\n").trim(),
@@ -217,15 +225,7 @@ export default class Scope {
             "\n",
             TranspilerCustoms.NL,
         );
-        if (
-            sendPayload.content.replaceAll(TranspilerCustoms.NL, "").trim() !==
-                "" ||
-            this.embeds.length ||
-            this.files.length ||
-            this.stickers.length
-        )
-            this.hasSendData = true;
-        else this.hasSendData = false;
+        this.updateHasSendData(sendPayload.content);
 
         let parsedContent = parseString(
             sendPayload.content.replaceAll(TranspilerCustoms.NL, "\n").trim(),
@@ -322,15 +322,7 @@ export default class Scope {
             "\n",
             TranspilerCustoms.NL,
         );
-        if (
-            sendPayload.content.replaceAll(TranspilerCustoms.NL, "").trim() !==
-                "" ||
-            this.embeds.length ||
-            this.files.length ||
-            this.stickers.length
-        )
-            this.hasSendData = true;
-        else this.hasSendData = false;
+        this.updateHasSendData(sendPayload.content);
 
         return parseResult(`\n\n${this.rest.trim()}\n\n`.trim()).replaceAll(
             TranspilerCustoms.SL,

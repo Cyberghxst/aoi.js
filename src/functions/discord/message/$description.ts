@@ -4,7 +4,7 @@ import { parseString } from "../../../core/parsers/stringParser.js";
 import Scope from "../../../core/structs/Scope.js";
 import { funcData } from "../../../typings/interfaces.js";
 import { escapeResult, escapeVars } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const description = new AoiJSFunction()
     .setName("$description")
@@ -27,7 +27,7 @@ const description = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["text", ""])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("Sets the description of an embed at the specified index")
     .setExample(`
         $description[hello world] // sets the description of the first embed to "hello world"
@@ -70,11 +70,7 @@ description.setCode((data: funcData, scope: Scope[], thisArg) => {
         )};`,
     );
 
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, description);
 
 export const $description = description.build();

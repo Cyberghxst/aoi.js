@@ -6,7 +6,7 @@ import {
     escapeResult,
     escapeVars,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const arrayConcat = new AoiJSFunction()
     .setName("$arrayConcat")
@@ -29,7 +29,7 @@ const arrayConcat = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("concatenates the specified values to the array")
     .setExample(`
         $arrayCreate[myArray;hello;world]

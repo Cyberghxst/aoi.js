@@ -9,8 +9,8 @@ import { CommandManager } from "../manager/Command.js";
 import { onMessage } from "../events/messageCreate.js";
 import { Util } from "./Util.js";
 import { FunctionManager } from "../manager/Function.js";
-import { AoiClientProps, CommandTypes } from "../typings/types.js";
-import { AoiClientEvents } from "../typings/enums.js";
+import { AoiClientProps } from "../typings/types.js";
+import { AoiClientEvents, CommandType } from "../typings/enums.js";
 import { onInteraction } from "../events/interactionCreate.js";
 import { onReady } from "../events/ready.js";
 import { readFileSync } from "fs";
@@ -86,7 +86,7 @@ class AoiClient {
      * exposed as `command` instead of `basicCommand`.
      */
     #bindCommands() {
-        const cmdTypes = this.managers.commands.types as CommandTypes[];
+        const cmdTypes = this.managers.commands.types as CommandType[];
         for (const type of cmdTypes) {
             const cmdType = `${type}Command` as const;
             const parsedType = cmdType === "basicCommand" ? "command" : cmdType;
@@ -109,7 +109,7 @@ class AoiClient {
             const commands = cmd.map((command) => {
                 return {
                     ...command,
-                    type: "component",
+                    type: CommandType.Component,
                 };
             }) as CommandOptions[];
             this.managers.commands.addMany(commands);

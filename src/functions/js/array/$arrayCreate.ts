@@ -8,7 +8,7 @@ import {
     escapeVars,
     parseData,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const arrayCreate = new AoiJSFunction()
     .setName("$arrayCreate")
@@ -31,7 +31,7 @@ const arrayCreate = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("creates an array with the specified values")
     .setExample(`
         $arrayCreate[myArray;hello;world;nya]

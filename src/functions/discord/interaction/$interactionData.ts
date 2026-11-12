@@ -1,6 +1,6 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const interactionData = new AoiJSFunction()
     .setName("$interactionData")
@@ -17,13 +17,12 @@ const interactionData = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("any")
+    .setReturns(ReturnType.Any)
     .setDescription("gets the interaction data").setExample(`
         $interactionData[user.id] // returns the user's id of the interaction
     `);
 
 interactionData.setCode((data, scope, thisArg) => {
-    const currentScope = thisArg.getCurrentScope(scope);
     const property = data.inside;
 
     const res = escapeResult(
@@ -32,11 +31,7 @@ interactionData.setCode((data, scope, thisArg) => {
             : `__$Discord_Data$__.interaction?.${property}`,
     );
 
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, interactionData);
 
 export const $interactionData = interactionData.build();

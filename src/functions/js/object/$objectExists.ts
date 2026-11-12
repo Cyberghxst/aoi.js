@@ -3,7 +3,7 @@ import { TranspilerError } from "../../../core/error.js";
 import Scope from "../../../core/structs/Scope.js";
 import { funcData } from "../../../typings/interfaces.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const objectExists = new AoiJSFunction()
     .setName("$objectExists")
@@ -20,7 +20,7 @@ const objectExists = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("object")
+    .setReturns(ReturnType.Object)
     .setDescription("returns whether object exists or not")
     .setExample(`
         $createObject[object;{key:value}]
@@ -43,11 +43,7 @@ objectExists.setCode((data: funcData, scope: Scope[], thisArg) => {
         `${!!currentScope.objects[<string>name ?? ""]}`,
     );
 
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, objectExists);
 
 export const $objectExists = objectExists.build();

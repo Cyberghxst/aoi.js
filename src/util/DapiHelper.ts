@@ -1,5 +1,6 @@
 import { Message } from "zeneth";
 import { AoiClient } from "..";
+import { AutoFetchDataType } from "../typings/enums.js";
 import { autoFetchDataTypes } from "../typings/types.js";
 
 /**
@@ -19,7 +20,7 @@ export function isAutoFetchDataEnabled(
     if (!dataType) return false;
     return (
         client.options.autoFetchData?.includes(dataType) ||
-        client.options.autoFetchData?.includes("all") ||
+        client.options.autoFetchData?.includes(AutoFetchDataType.All) ||
         false
     );
 }

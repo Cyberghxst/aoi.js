@@ -1,5 +1,6 @@
 import { Camelize, GatewayEventNames, GatewayReadyData } from "zeneth";
 import { AoiClient } from "../index.js";
+import { CommandType } from "../typings/enums.js";
 
 /** Subscribes the ready handler to the gateway's Ready event. */
 export function onReady(client: AoiClient) {
@@ -18,7 +19,7 @@ export async function ready(
     client: AoiClient,
 ) {
     await client.managers.commands.exec({
-        type: "ready",
+        type: CommandType.Ready,
         data: {
             client: client.client,
             bot: client,

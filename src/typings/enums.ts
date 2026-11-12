@@ -43,3 +43,49 @@ export enum FunctionType {
     Scope = "scope",
     ScopeGetter = "scope_getter",
 }
+
+export enum ReturnType {
+    Void = "void",
+    Number = "number",
+    String = "string",
+    StringOptional = "?string",
+    Any = "any",
+    Boolean = "boolean",
+    BigInt = "bigint",
+    Object = "object",
+    Array = "array",
+}
+
+export enum CommandType {
+    Basic = "basic",
+    Interaction = "interaction",
+    Ready = "ready",
+    Debug = "debug",
+    Component = "component",
+}
+
+export enum AutoFetchDataType {
+    Guild = "guild",
+    Channel = "channel",
+    Emoji = "emoji",
+    Member = "member",
+    Role = "role",
+    User = "user",
+    All = "all",
+}
+
+export enum PluginType {
+    Pre = "pre",
+    Post = "post",
+    Load = "load",
+    PreEvent = "preEvent",
+    PostEvent = "postEvent",
+    PreCommand = "preCommand",
+    PostCommand = "postCommand",
+}
+
+export enum ExecuteAt {
+    Guild = "guild",
+    Dm = "dm",
+    Both = "both",
+}

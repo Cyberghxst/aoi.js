@@ -6,7 +6,7 @@ import {
 } from "zeneth";
 import { AoiClient } from "../structures/AoiClient.js";
 import { isAutoFetchDataEnabled } from "../util/DapiHelper.js";
-import { AoiClientEvents } from "../typings/enums.js";
+import { AoiClientEvents, AutoFetchDataType, CommandType } from "../typings/enums.js";
 
 /** Subscribes the interaction handler to the gateway's InteractionCreate event. */
 export function onInteraction(client: AoiClient) {
@@ -36,7 +36,7 @@ export async function interactionCreate(
     if (!cmdName) return;
     await client.managers.commands
         .exec({
-            type: "interaction",
+            type: CommandType.Interaction,
             data: {
                 interaction,
                 client: client.client,
@@ -45,14 +45,14 @@ export async function interactionCreate(
                 channel:
                     interaction.channel ??
                     client.cache?.channels?.get(interaction.channelId) ??
-                    isAutoFetchDataEnabled("channel", client)
+                    isAutoFetchDataEnabled(AutoFetchDataType.Channel, client)
                         ? await client.client.getChannel(
                               interaction.channelId as Snowflake,
                         )
                         : { id: interaction.channelId, fetched: false },
                 guild:
                     client.cache?.guilds?.get(interaction.guildId) ??
-                    isAutoFetchDataEnabled("guild", client)
+                    isAutoFetchDataEnabled(AutoFetchDataType.Guild, client)
                         ? await client.client.getGuild(
                               interaction.guildId as Snowflake,
                         )

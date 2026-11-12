@@ -2,7 +2,7 @@ import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { funcData, Scope, TranspilerError, Transpiler } from "../../../index.js";
 import funcs from "../../index.js";
 import { getFunctionList, escapeFunctionResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const elseFunction = new AoiJSFunction()
     .setName("$else")
@@ -19,7 +19,7 @@ const elseFunction = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("Else statement")
     .setExample(`
     $if[$ping<100;
@@ -89,12 +89,7 @@ elseFunction.setCode((data: funcData, scope: Scope[], thisArg) => {
       ${newscope.toString()}
     }
     `);
-    currentScope.update( res, data );
-    return {
-        code: res,
-        scope: scope,
-        data,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, elseFunction);
 
 export const $else = elseFunction.build();

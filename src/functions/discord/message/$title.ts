@@ -4,7 +4,7 @@ import { parseString } from "../../../core/parsers/stringParser.js";
 import Scope from "../../../core/structs/Scope.js";
 import { funcData } from "../../../typings/interfaces.js";
 import { escapeResult, escapeVars } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const title = new AoiJSFunction()
     .setName("$title")
@@ -27,7 +27,7 @@ const title = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["text", ""])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("Sets the title of an embed at the specified index")
     .setExample(`
         $title[hello world] // sets the title of the first embed to "hello world"
@@ -72,12 +72,7 @@ title.setCode((data: funcData, scope: Scope[], thisArg) => {
         )}[${index}].title = ${parseString(actualTitle)};`,
     );
 
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, title);
 
 export const $title = title.build();

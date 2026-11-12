@@ -1,7 +1,7 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { funcData, Scope, parseString } from "../../../index.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const includes = new AoiJSFunction()
     .setName("$includes")
@@ -24,7 +24,7 @@ const includes = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void"])
-    .setReturns("boolean")
+    .setReturns(ReturnType.Boolean)
     .setDescription("Checks if the text includes the search")
     .setExample(`
         $includes[Hello World;Hello] // returns true

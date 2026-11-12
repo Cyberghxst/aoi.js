@@ -1,6 +1,6 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const message = new AoiJSFunction()
     .setName("$message")
@@ -17,7 +17,7 @@ const message = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["all"])
-    .setReturns("string")
+    .setReturns(ReturnType.String)
     .setDescription("Returns the author's message")
     .setExample(`
         $message // returns the author's message
@@ -26,18 +26,13 @@ const message = new AoiJSFunction()
         `);
 
 message.setCode((data, scope, thisArg) => {
-    const currentScope = thisArg.getCurrentScope(scope);
     const argsIndex = data.inside;
     const message = argsIndex
         ? `__$DISCORD_DATA$__.args?.[${argsIndex}]`
         : "__$DISCORD_DATA$__.args?.join(' ')";
 
     const res = escapeResult(`(${message})`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, message);
 
 export const $message = message.build();

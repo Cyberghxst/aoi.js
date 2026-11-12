@@ -3,10 +3,11 @@ import { TranspilerError } from "../../../core/error.js";
 import Scope from "../../../core/structs/Scope.js";
 import { funcData } from "../../../typings/interfaces.js";
 import {
+    assertVariableExists,
     escapeResult,
     escapeVars,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const arrayAt = new AoiJSFunction()
     .setName("$arrayAt")
@@ -29,7 +30,7 @@ const arrayAt = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void"])
-    .setReturns("any")
+    .setReturns(ReturnType.Any)
     .setDescription("returns the value of the array at the specified index")
     .setExample(`
         $arrayCreate[myArray;hello;world;nya]
@@ -41,14 +42,7 @@ const arrayAt = new AoiJSFunction()
 arrayAt.setCode((data: funcData, scope: Scope[], thisArg) => {
     const [name, index] = data.splits;
     const currentScope = thisArg.getCurrentScope(scope);
-    if (
-        !currentScope.variables.includes(name) &&
-            !currentScope.name.startsWith("$try_") &&
-            !currentScope.name.startsWith("$catch_")
-    )
-        throw new TranspilerError(
-            `${data.name}: Variable ${name} doesn't exist`,
-        );
+    assertVariableExists(currentScope, name, `${data.name}: Variable ${name} doesn't exist`);
 
     const parsedIndex = (Number(index) <0 ? Number(index) : Number(index)-1);
     if (
@@ -59,12 +53,7 @@ arrayAt.setCode((data: funcData, scope: Scope[], thisArg) => {
         throw new TranspilerError(`${data.name}: Index must be a number`);
 
     const res = escapeResult(`${escapeVars(name)}?.at(${parsedIndex})`);
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, arrayAt);
 
 export const $arrayAt = arrayAt.build();

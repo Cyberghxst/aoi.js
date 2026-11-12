@@ -1,6 +1,6 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const clientToken = new AoiJSFunction()
     .setName("$clientToken")
@@ -10,23 +10,17 @@ const clientToken = new AoiJSFunction()
     .setFields([])
     .setVersion("7.0.0")
     .setDefault([])
-    .setReturns("string")
+    .setReturns(ReturnType.String)
     .setDescription("Returns the token of client")
     .setExample("client token is `$clientToken`");
 
 clientToken.setCode((data, scope, thisArg) => {
-    const currentScope = thisArg.getCurrentScope(scope);
     const resultString = thisArg.getResultString(
         (discord) => discord.client.token,
         [],
     );
     const res = escapeResult(resultString as string);
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, clientToken);
 
 export const $clientToken = clientToken.build();

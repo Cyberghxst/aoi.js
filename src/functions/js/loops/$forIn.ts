@@ -2,7 +2,7 @@ import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspilerError, Transpiler } from "../../../index.js";
 import Scope from "../../../core/structs/Scope.js";
 import { getFunctionList, escapeResult, escapeVars } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 import funcs from "../../index.js";
 
 const forIn = new AoiJSFunction()
@@ -31,7 +31,7 @@ const forIn = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void","void", "void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("ForIn statement")
     .setExample(`
         $createObject[object;{
@@ -104,8 +104,7 @@ for(let ${variable} in ${escapeVars(objectName)}){
 }
 }
 `);
-    currentScope.update(res,data);
-    return { code: res, scope: scope, data };
+    return thisArg.finishResult(scope, data, res);
 }, forIn);
 
 export const $forIn = forIn.build();

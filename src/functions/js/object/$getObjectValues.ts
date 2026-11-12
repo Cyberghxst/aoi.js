@@ -6,7 +6,7 @@ import {
     escapeResult,
     escapeVars,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const getObjectValues = new AoiJSFunction()
     .setName("$getObjectValues")
@@ -23,7 +23,7 @@ const getObjectValues = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void",])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("returns all the values in the object")
     .setExample(`
         $createObject[object;{key:value,key2:value2}]
@@ -51,11 +51,7 @@ getObjectValues.setCode((data: funcData, scope: Scope[], thisArg) => {
         );
     }
     const res = escapeResult(`Object.values(${escapeVars(name)}).join(", ")`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, getObjectValues);
 
 export const $getObjectValues = getObjectValues.build();

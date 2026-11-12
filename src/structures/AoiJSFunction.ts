@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { FunctionData, Scope, TranspiledFuncData, funcData } from "../index.js";
-import { FunctionType } from "../typings/enums.js";
+import { FunctionType, ReturnType } from "../typings/enums.js";
 import { inspect } from "util";
 
 /**
@@ -22,7 +22,7 @@ export default class AoiJSFunction {
     fields!: FunctionData["fields"];
     version!: string;
     default!: string[];
-    returns!: string;
+    returns!: ReturnType;
     description!: string;
     example!: string;
     code!: FunctionData["code"];
@@ -61,7 +61,7 @@ export default class AoiJSFunction {
         return this;
     }
     /** Sets a description of what the function returns. */
-    setReturns(returns: string) {
+    setReturns(returns: ReturnType) {
         this.returns = returns;
         return this;
     }
@@ -101,6 +101,27 @@ export default class AoiJSFunction {
     /** Returns the parsed arguments (`splits`) of a function call. */
     getParams(data: funcData) {
         return data.splits;
+    }
+
+    /**
+     * Finishes a code generator with a computed, already-escaped result:
+     * feeds it into the current scope and returns the `{ code, scope,
+     * data }` triple the transpiler expects. Most $functions end their
+     * `setCode` callback this way.
+     *
+     * The escaping itself stays in the caller because different function
+     * families escape differently (`escapeResult`, `escapeMathResult`,
+     * `escapeFunctionResult`), so this helper takes the finished result
+     * string as-is.
+     */
+    finishResult(
+        scope: Scope[],
+        data: funcData,
+        result: string,
+    ): { code: string; scope: Scope[]; data: funcData } {
+        const currentScope = this.getCurrentScope(scope);
+        currentScope.update(result, data);
+        return { code: result, scope, data };
     }
 
     /** Replaces a scope's setter code with the given value. */

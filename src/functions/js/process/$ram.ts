@@ -1,7 +1,7 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { funcData, Scope } from "../../../index.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const ram = new AoiJSFunction()
     .setName("$ram")
@@ -18,7 +18,7 @@ const ram = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["rss"])
-    .setReturns("number")
+    .setReturns(ReturnType.Number)
     .setDescription("Returns the bot's ram usage")
     .setExample(`
         $ram // returns the rss ram usage

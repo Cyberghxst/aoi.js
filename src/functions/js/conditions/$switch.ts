@@ -10,7 +10,7 @@ import {
     getFunctionList,
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const switchFunction = new AoiJSFunction()
     .setName("$switch")
@@ -33,7 +33,7 @@ const switchFunction = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("Switch statement")
     .setExample(`
         $let[num;1]
@@ -136,12 +136,7 @@ switchFunction.setCode((data: funcData, scope: Scope[], thisArg) => {
       ${newscope.rawString()}
     }
     `);
-    currentScope.update( res, data );
-    return {
-        code: res,
-        scope: scope,
-        data,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, switchFunction);
 
 export const $switch = switchFunction.build();

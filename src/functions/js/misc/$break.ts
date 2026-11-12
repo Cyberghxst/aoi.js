@@ -1,6 +1,6 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeFunctionResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const breakFunction = new AoiJSFunction()
     .setName("$break")
@@ -10,7 +10,7 @@ const breakFunction = new AoiJSFunction()
     .setFields([])
     .setVersion("7.0.0")
     .setDefault([])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("Breaks out of a loop")
     .setExample(`
     

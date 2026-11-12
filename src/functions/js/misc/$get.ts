@@ -3,11 +3,12 @@ import { TranspilerError } from "../../../core/error.js";
 import Scope from "../../../core/structs/Scope.js";
 import { funcData } from "../../../typings/interfaces.js";
 import {
+    assertVariableExists,
     escapeResult,
     escapeVars,
     removeSetFunc,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const get = new AoiJSFunction()
     .setName("$get")
@@ -24,7 +25,7 @@ const get = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("any")
+    .setReturns(ReturnType.Any)
     .setDescription("Gets the value of the variable")
     .setExample(`
         $let[hello;world]
@@ -60,17 +61,10 @@ get.setCode((data: funcData, scope: Scope[], thisArg) => {
     ) {
         throw new TranspilerError(`${data.name} requires a name`);
     }
-    if (
-        !currentScope.variables.includes(name) &&
-            !currentScope.name.startsWith("$try_") &&
-            !currentScope.name.startsWith("$catch_")
-    ) {
-        throw new TranspilerError(`${data.name} cannot find ${name}`);
-    }
+    assertVariableExists(currentScope, name, `${data.name} cannot find ${name}`);
     const res = `${escapeResult(escapeVars(name))}`;
 
-    currentScope.update( res, data );
-    return { code: res, scope: scope };
+    return thisArg.finishResult(scope, data, res);
 }, get);
 
 export const $get = get.build();

@@ -1,9 +1,8 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
-import { TranspilerError } from "../../../core/error.js";
 import Scope from "../../../core/structs/Scope.js";
 import { funcData } from "../../../typings/interfaces.js";
-import { escapeResult, escapeVars } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { assertVariableExists, escapeResult, escapeVars } from "../../../util/transpilerHelpers.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const arrayLastIndexOf = new AoiJSFunction()
     .setName("$arrayLastIndexOf")
@@ -26,7 +25,7 @@ const arrayLastIndexOf = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void"])
-    .setReturns("number")
+    .setReturns(ReturnType.Number)
     .setDescription("Returns the index of the last occurrence of a value in an array, or 0 if it is not present.")
     .setExample(`
         $arrayCreate[myArray;hello;world;nya;hello]
@@ -39,24 +38,12 @@ arrayLastIndexOf.setCode((data: funcData, scope: Scope[], thisArg) => {
     const currentScope = thisArg.getCurrentScope(scope);
     const [name, value] = data.splits;
 
-    if (
-        !currentScope.variables.includes(name) &&
-            !currentScope.name.startsWith("$try_") &&
-            !currentScope.name.startsWith("$catch_")
-    )
-        throw new TranspilerError(
-            `${data.name}: Array ${name} does not exist`,
-        );
+    assertVariableExists(currentScope, name, `${data.name}: Array ${name} does not exist`);
 
     const res = escapeResult(
         `${escapeVars(name)}.lastIndexOf(${value}) + 1`,
     );
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, arrayLastIndexOf);
 
 export const $arrayLastIndexOf = arrayLastIndexOf.build();

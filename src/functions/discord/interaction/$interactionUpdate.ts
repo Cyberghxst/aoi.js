@@ -7,7 +7,7 @@ import {
     getFunctionList,
     parseResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const interactionUpdate = new AoiJSFunction()
     .setName("$interactionUpdate")
@@ -24,7 +24,7 @@ const interactionUpdate = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("updates the original message of the interaction (only for message components)")
     .setExample(`
         $interactionUpdate[hello world] // updates the original message with "hello world"
@@ -95,12 +95,7 @@ interactionUpdate.setCode((data: funcData, scope: Scope[], thisArg) => {
         )});`,
     );
 
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, interactionUpdate);
 
 export const $interactionUpdate = interactionUpdate.build();

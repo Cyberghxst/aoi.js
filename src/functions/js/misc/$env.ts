@@ -3,7 +3,7 @@ import { TranspilerError,Scope } from "../../../core/index.js";
 
 import { funcData } from "../../../typings/interfaces.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const env = new AoiJSFunction()
     .setName("$env")
@@ -20,7 +20,7 @@ const env = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("?string")
+    .setReturns(ReturnType.StringOptional)
     .setDescription("returns the value of an scoped variable of the current scope")
     .setExample(`
     $try[
@@ -53,11 +53,7 @@ env.setCode((data: funcData, scope: Scope[], thisArg) => {
         throw new TranspilerError(`${data.name}: ENV ${env} Not Found`);
     }
     const res = escapeResult(`${env}`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, env);
 
 export const $env = env.build();

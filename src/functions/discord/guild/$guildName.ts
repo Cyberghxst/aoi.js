@@ -5,7 +5,7 @@ import { Guild, Snowflake } from "zeneth";
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
 import { parseString } from "../../../index.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const guildName = new AoiJSFunction()
     .setName("$guildName")
@@ -22,7 +22,7 @@ const guildName = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["__$DISCORD_DATA$__.guild?.id"])
-    .setReturns("string")
+    .setReturns(ReturnType.String)
     .setDescription("Returns the name of current guild").setExample(`
         $guildName // returns the name of current guild
 
@@ -30,7 +30,6 @@ const guildName = new AoiJSFunction()
         `);
 
 guildName.setCode((data, scope, thisArg) => {
-    const currentScope = thisArg.getCurrentScope(scope);
     const id = data.inside;
     const resultString = thisArg.conditionalGetResultString(
         !!id,
@@ -49,12 +48,7 @@ guildName.setCode((data, scope, thisArg) => {
         },
     );
     const res = escapeResult(resultString as string);
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, guildName);
 
 export const $guildName = guildName.build();

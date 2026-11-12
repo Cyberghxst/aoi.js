@@ -1,7 +1,7 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { funcData, Scope, parseString } from "../../../index.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const cpu = new AoiJSFunction()
     .setName("$cpu")
@@ -18,7 +18,7 @@ const cpu = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["process"])
-    .setReturns("number")
+    .setReturns(ReturnType.Number)
     .setDescription("Returns the CPU usage")
     .setExample(`
     $cpu // returns the cpu usage of the process    

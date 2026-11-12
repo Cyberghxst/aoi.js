@@ -1,7 +1,7 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { Scope, TranspilerError, funcData, parseString } from "../../../index.js";
 import { convertToBool, escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const jseval = new AoiJSFunction()
     .setName("$jseval")
@@ -24,7 +24,7 @@ const jseval = new AoiJSFunction()
     ])
     .setVersion("1.0.0")
     .setDefault(["void", "void"])
-    .setReturns("any")
+    .setReturns(ReturnType.Any)
     .setDescription("Evaluates the provided Js code")
     .setExample(`
         $jsEval[false;log("hello world")]

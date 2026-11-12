@@ -2,7 +2,7 @@ import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import {
     escapeResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const authorId = new AoiJSFunction()
     .setName("$authorId")
@@ -12,21 +12,16 @@ const authorId = new AoiJSFunction()
     .setFields([])
     .setVersion("7.0.0")
     .setDefault([])
-    .setReturns("bigint")
+    .setReturns(ReturnType.BigInt)
     .setDescription("Returns the id of the author")
     .setExample("author id is `$authorId`");
 
 authorId.setCode((data, scope, thisArg) => {
-    const currentScope = thisArg.getCurrentScope(scope);
 
     const authorId = "__$DISCORD_DATA$__.author?.id";
 
     const res = escapeResult(`(${authorId})`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, authorId);
 
 export const $authorId = authorId.build();

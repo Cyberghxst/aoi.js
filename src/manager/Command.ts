@@ -2,6 +2,7 @@ import { Group } from "@akarui/structures";
 import { Command } from "../structures/Command.js";
 import { CommandOptions, TranspiledFuncData } from "../typings/interfaces.js";
 import { CommandTypes, Optional } from "../typings/types.js";
+import { CommandType } from "../typings/enums.js";
 import fs, { readFile } from "fs/promises";
 import { AoiClient, Bundler } from "../index.js";
 import Path from "path";
@@ -30,18 +31,35 @@ export class CommandManager {
     }
 
     /** Whether the given type has its own numbered group (component commands are keyed by name instead). */
-    isValidType(type: string) {
-        return ["basic", "interaction", "ready", "debug"].includes(type);
+    isValidType(type: CommandTypes) {
+        const numberedTypes: CommandTypes[] = [
+            CommandType.Basic,
+            CommandType.Interaction,
+            CommandType.Ready,
+            CommandType.Debug,
+        ];
+        return numberedTypes.includes(type);
     }
 
     /** The numbered command groups, in the order their helpers are created on the client. */
     get types() {
-        return ["basic", "interaction", "ready", "debug"];
+        return [
+            CommandType.Basic,
+            CommandType.Interaction,
+            CommandType.Ready,
+            CommandType.Debug,
+        ];
     }
 
     /** Every command type, including the name-keyed component group. */
     static cmdTypes() {
-        return ["basic", "interaction", "ready", "debug", "component"];
+        return [
+            CommandType.Basic,
+            CommandType.Interaction,
+            CommandType.Ready,
+            CommandType.Debug,
+            CommandType.Component,
+        ];
     }
 
     /**
@@ -53,10 +71,10 @@ export class CommandManager {
         if (!command.type) throw new Error("Command type is required");
         if (!command.__path__) command.__path__ = "root";
         const cmd = new Command(command as CommandOptions, this.#client);
-        if (this.isValidType(command.type) && command.type !== "component")
+        if (this.isValidType(command.type) && command.type !== CommandType.Component)
             this[command.type].set(this[command.type].size, cmd);
         else {
-            if (command.type === "component")
+            if (command.type === CommandType.Component)
                 this.component.set(command.name, cmd);
             else {
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment

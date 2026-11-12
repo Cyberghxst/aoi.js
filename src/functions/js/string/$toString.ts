@@ -1,7 +1,7 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { funcData, Scope } from "../../../index.js";
 import { escapeFunctionResult, parseData, parseResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 /**
  * Converts a value to its string representation: objects are inspected
@@ -23,7 +23,7 @@ const toString = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault([ "void"])
-    .setReturns("string")
+    .setReturns(ReturnType.String)
     .setDescription("Checks if the text toString the search")
     .setExample(`
         $toString[Hello World] // returns "Hello World"
@@ -50,12 +50,7 @@ const UTIL = await import("util");
     }
 
     const res = escapeFunctionResult(`__$toString$__(${parsedValue})`);
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope: scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, toString);
 
 export const $toString = toString.build();

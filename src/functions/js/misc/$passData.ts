@@ -3,7 +3,7 @@ import { TranspilerError,Scope } from "../../../core/index.js";
 
 import { funcData } from "../../../typings/interfaces.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const passData = new AoiJSFunction()
     .setName("$passData")
@@ -20,7 +20,7 @@ const passData = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("?string")
+    .setReturns(ReturnType.StringOptional)
     .setDescription("return the data passed to the command from another command")
     .setExample(`
     $passData[hello] // returns the data passed to the command from another command
@@ -37,11 +37,7 @@ passData.setCode((data: funcData, scope: Scope[], thisArg) => {
         throw new TranspilerError(`${data.name}: PASSDATA Not Provided.`);
     }
     const res = escapeResult(`__$DISCORD_DATA$__${passData}`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, passData);
 
 export const $passData = passData.build();

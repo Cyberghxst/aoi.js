@@ -3,7 +3,7 @@ import { InteractionResponseTypes, Snowflake } from "zeneth";
 import { StringObject, parseStringObject } from "../../../index.js";
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const autocomplete = new AoiJSFunction()
     .setName("$autocompleteRespond")
@@ -20,7 +20,7 @@ const autocomplete = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription(
         "responds to the autocomplete interaction with the provided options",
     ).setExample(`
@@ -36,7 +36,6 @@ const autocomplete = new AoiJSFunction()
     `);
 
 autocomplete.setCode((data, scope, thisArg) => {
-    const currentScope = thisArg.getCurrentScope(scope);
     const opts = thisArg.getParams(data);
     const options = [];
     let i = 0;
@@ -72,12 +71,7 @@ autocomplete.setCode((data, scope, thisArg) => {
     );
 
     const res = escapeResult(resultString as string);
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, autocomplete);
 
 export const $autocompleteRespond = autocomplete.build();

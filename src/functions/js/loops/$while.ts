@@ -3,7 +3,7 @@ import { TranspilerError, Transpiler, conditionLexer } from "../../../index.js";
 import Scope from "../../../core/structs/Scope.js";
 import { AsyncFunction } from "../../../typings/types.js";
 import { getFunctionList, escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 import funcs from "../../index.js";
 
 const whileFunction = new AoiJSFunction()
@@ -27,7 +27,7 @@ const whileFunction = new AoiJSFunction()
     ])
     .setVersion("1.0.0")
     .setDefault(["void", "void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("While statement")
     .setExample(`
         $let[num;1]
@@ -118,8 +118,7 @@ while(${executedCondition}) {
 }
 }
 `);
-    currentScope.update( res, data );
-    return { code: res, scope: scope, data };
+    return thisArg.finishResult(scope, data, res);
 }, whileFunction);
 
 export const $while = whileFunction.build();

@@ -7,7 +7,7 @@ import {
     getFunctionList,
     parseResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const interactionModal = new AoiJSFunction()
     .setName("$interactionModal")
@@ -24,7 +24,7 @@ const interactionModal = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("creates a modal for the interaction")
     .setExample(`
         
@@ -98,12 +98,7 @@ interactionModal.setCode((data: funcData, scope: Scope[], thisArg) => {
         )});`,
     );
 
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, interactionModal);
 
 export const $interactionModal = interactionModal.build();

@@ -33,43 +33,33 @@ export default class StringObject {
         this.children.push(child);
     }
     solve() {
-        if (this.children) {
-            this.children.forEach((child) => {
-                const result = child.solve();
-                const index = this.values.indexOf(`#StringObject_${child.name}#`);
-                const keyIndex = this.keys.indexOf(`#StringObject_${child.name}#`);
-                this.keys[keyIndex] = result;
-                this.values[index] = result;
-            });
-            const keys = this.keys;
-            const values = this.values;
-            let i = 0;
-            let text = "";
-            if (this.start === "[") {
-                text = values.join(",");
-                return `${this.start}${text}${this.end}`;
-            }
-            while (i < keys.length) {
-                text += `${keys[i]} : ${values[i]},`;
-                i++;
-            }
-            text = text.slice(0, text.length - 1);
-            return `${this.start}${text}${this.end}`;
-        } else {
-            const keys = this.keys;
-            const values = this.values;
-            let i = 0;
-            let text = "";
-            if (this.start === "[") {
-                text = values.join(",");
-                return `${this.start}${text}${this.end}`;
-            }
-            while (i < keys.length) {
-                text += `${keys[i]} : ${values[i]},`;
-                i++;
-            }
-            text = text.slice(0, text.length - 1);
+        this.children.forEach((child) => {
+            const result = child.solve();
+            const index = this.values.indexOf(`#StringObject_${child.name}#`);
+            const keyIndex = this.keys.indexOf(`#StringObject_${child.name}#`);
+            this.keys[keyIndex] = result;
+            this.values[index] = result;
+        });
+        return this.assemble();
+    }
+    /**
+     * Reassembles this literal from its (already solved) keys and values
+     * into a `{...}` object or `[...]` array literal.
+     */
+    assemble() {
+        const keys = this.keys;
+        const values = this.values;
+        let i = 0;
+        let text = "";
+        if (this.start === "[") {
+            text = values.join(",");
             return `${this.start}${text}${this.end}`;
         }
+        while (i < keys.length) {
+            text += `${keys[i]} : ${values[i]},`;
+            i++;
+        }
+        text = text.slice(0, text.length - 1);
+        return `${this.start}${text}${this.end}`;
     }
 }

@@ -1,15 +1,13 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
-import { TranspilerError } from "../../../core/error.js";
 import Scope from "../../../core/structs/Scope.js";
-import { Transpiler, conditionLexer, functions } from "../../../index.js";
 import { funcData } from "../../../typings/interfaces.js";
 import {
+    assertVariableExists,
     escapeResult,
     escapeVars,
-    getFunctionList,
-    parseResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
+import { transpileArrayCallback } from "./arrayHelpers.js";
 
 const arrayFilter = new AoiJSFunction()
     .setName("$arrayFilter")
@@ -32,7 +30,7 @@ const arrayFilter = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("filters the array based on the condition")
     .setExample(`
         $arrayCreate[myArray;1;2;3;4;5]
@@ -43,54 +41,24 @@ const arrayFilter = new AoiJSFunction()
 arrayFilter.setCode((data: funcData, scope: Scope[], thisArg) => {
     const [name, ...values] = data.splits;
     const currentScope = thisArg.getCurrentScope(scope);
-    if (
-        !currentScope.variables.includes(name) &&
-            !currentScope.name.startsWith("$try_") &&
-            !currentScope.name.startsWith("$catch_")
-    )
-        throw new TranspilerError(
-            `${data.name}: Variable ${name} does not exists`,
-        );
+    assertVariableExists(
+        currentScope,
+        name,
+        `${data.name}: Variable ${name} does not exists`,
+    );
 
     const condition = values.join(";");
-    const conditionFunctionList = getFunctionList(
+    const executedCondition = transpileArrayCallback(
+        currentScope,
         condition,
-        Object.keys(functions),
+        true,
     );
-    let executedCondition;
-    if (conditionFunctionList.length) {
-        executedCondition = Transpiler(condition, {
-            sendMessage: false,
-            scopeData: {
-                variables: currentScope.variables,
-                name: currentScope.name,
-                objects: currentScope.objects,
-                env: [...currentScope.env, "array_element"],
-            },
-            client: currentScope.client,
-        });
-        currentScope.functions +=
-                executedCondition.scope[0].functions + "\n";
-        currentScope.packages += executedCondition.scope[0].packages;
-        executedCondition = executedCondition.code;
-    } else {
-        executedCondition = condition;
-    }
-    executedCondition = conditionLexer(executedCondition);
-
-    executedCondition = executedCondition.solve();
 
     const res = escapeResult(
-        `${escapeVars(name)}.filter(array_element => ${ parseResult(executedCondition)})`,
+        `${escapeVars(name)}.filter(array_element => ${executedCondition})`,
     );
 
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-        data,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, arrayFilter);
 
 export const $arrayFilter = arrayFilter.build();

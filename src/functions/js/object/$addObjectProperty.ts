@@ -7,7 +7,7 @@ import {
     escapeVars,
     parseData,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const addObjectProperty = new AoiJSFunction()
     .setName("$addObjectProperty")
@@ -36,7 +36,7 @@ const addObjectProperty = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void", "void"])
-    .setReturns("void")
+    .setReturns(ReturnType.Void)
     .setDescription("adds a value to the key in the object")
     .setExample(`
         $createObject[object;{key:value}]
@@ -68,11 +68,7 @@ addObjectProperty.setCode((data: funcData, scope: Scope[], thisArg) => {
     currentScope.objects[name].addKey(key);
     currentScope.objects[name].addValue(parsedValue);
     const res = escapeResult(`${escapeVars(name)}.${key} = ${parsedValue}`);
-    currentScope.update(res, data);
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, addObjectProperty);
 
 export const $addObjectProperty = addObjectProperty.build();

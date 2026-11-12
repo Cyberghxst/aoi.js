@@ -3,7 +3,7 @@ import { conditionLexer } from "../../../index.js";
 import {
     escapeResult, parseResult,
 } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const checkCondition = new AoiJSFunction()
     .setName("$checkCondition")
@@ -20,7 +20,7 @@ const checkCondition = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("boolean")
+    .setReturns(ReturnType.Boolean)
     .setDescription("Returns true if the condition is true")
     .setExample(`
     $checkCondition[$isNumber[1]] // returns true
@@ -30,15 +30,9 @@ const checkCondition = new AoiJSFunction()
 
 checkCondition.setCode((data, scope, thisArg) => {
     const conditions = <string>data.inside;
-    const currentScope = thisArg.getCurrentScope(scope);
     const solved = conditionLexer(conditions).solve();
     const res = escapeResult(parseResult(solved));
-    currentScope.update( res, data );
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, checkCondition);
 
 export const $checkCondition = checkCondition.build();

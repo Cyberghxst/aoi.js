@@ -1,7 +1,7 @@
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { conditionLexer } from "../../../index.js";
 import { escapeFunctionResult, parseResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const and = new AoiJSFunction()
     .setName("$and")
@@ -18,7 +18,7 @@ const and = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void"])
-    .setReturns("boolean")
+    .setReturns(ReturnType.Boolean)
     .setDescription("Returns true if all conditions are true ( function version of && )")
     .setExample(`
     $and[$isNumber[1];$isNumber[2]] // returns true 
@@ -27,16 +27,10 @@ const and = new AoiJSFunction()
 
 and.setCode((data, scope, thisArg) => {
     const conditions = data.splits;
-    const currentScope = thisArg.getCurrentScope(scope);
 
     const solved = conditionLexer( conditions.join( "&&" ) ).solve( );
     const res = escapeFunctionResult( parseResult(solved) );
-    currentScope.update( res, data );
-    return {
-        code: res,
-        scope,
-        data,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, and);
 
 export const $and = and.build();

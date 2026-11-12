@@ -3,7 +3,7 @@ import { Scope } from "../../../index.js";
 import AoiJSFunction from "../../../structures/AoiJSFunction.js";
 import { TranspiledFuncData, funcData } from "../../../typings/interfaces.js";
 import { escapeResult } from "../../../util/transpilerHelpers.js";
-import { FunctionType } from "../../../typings/enums.js";
+import { FunctionType, ReturnType } from "../../../typings/enums.js";
 
 const clientAvatar = new AoiJSFunction()
     .setName("$clientAvatar")
@@ -32,7 +32,7 @@ const clientAvatar = new AoiJSFunction()
     ])
     .setVersion("7.0.0")
     .setDefault(["void", "void", "void"])
-    .setReturns("string")
+    .setReturns(ReturnType.String)
     .setDescription("Returns the Avatar of client")
     .setExample(
         `
@@ -44,7 +44,6 @@ $clientAvatar[4096;true;png] // returns the avatar of client with size 4096, dyn
 clientAvatar.setCode((data: funcData, scope: Scope[], thisArg) => {
     const [size = 4096, dynamic = "true", format = "png"] =
         thisArg.getParams(data);
-    const currentScope = thisArg.getCurrentScope(scope);
 
     const resultString = thisArg.getResultString(
         (discord: TranspiledFuncData) =>
@@ -59,12 +58,7 @@ clientAvatar.setCode((data: funcData, scope: Scope[], thisArg) => {
     );
 
     const res = escapeResult(resultString as string);
-    currentScope.update(res, data);
-
-    return {
-        code: res,
-        scope,
-    };
+    return thisArg.finishResult(scope, data, res);
 }, clientAvatar);
 
 export const $clientAvatar = clientAvatar.build();
