@@ -1,7 +1,7 @@
 import { inspect } from "util";
 import { parseData } from "../../util/transpilerHelpers.js";
 import { parseString } from "../parsers/stringParser.js";
-import { BundlerCustoms } from "../../typings/enums.js";
+import { BundlerCustoms, TranspilerCustoms } from "../../typings/enums.js";
 /**
  * Comparison operators, longest first: `find` returns the first operator
  * contained in the condition, so `<=` must be checked before `<` (and
@@ -9,6 +9,34 @@ import { BundlerCustoms } from "../../typings/enums.js";
  * `a < "=b"` and the right side is stringified.
  */
 const operators = ["===", "!==", ">=", "<=", "==", "!=", ">", "<"];
+
+/**
+ * Whether a value is generated code wrapped in the transpiler's math
+ * markers (`#MATH_FUNCTION_START#...#MATH_FUNCTION_END#`), e.g. the
+ * `(2+2)` a `$sum` produced. Like a `#FUNCTION_START#`-wrapped value it
+ * is code, not text, so the string quoting below must leave it alone.
+ */
+function isMathResult(value: string): boolean {
+    const trimmed = value.trim();
+    return (
+        trimmed.startsWith(TranspilerCustoms.MFS) &&
+        trimmed.endsWith(TranspilerCustoms.MFE)
+    );
+}
+
+/**
+ * A bare numeric expression like `2+1` or `(2*3)+4`: only digits, parens,
+ * spaces, dots and math operators, with at least one digit and one
+ * operator. Anything with letters is treated as text, so hyphenated
+ * words (`hello-world`) keep the old behavior.
+ */
+function isNumericExpression(value: string): boolean {
+    return (
+        /[+\-*/%]/.test(value) &&
+        /^[\d\s().+\-*/%]+$/.test(value) &&
+        /\d/.test(value)
+    );
+}
 
 /**
  * One node of a parsed condition (e.g. the inside of `$if[...]`).
@@ -80,7 +108,9 @@ export default class Condition {
                         if (
                             !((leftData.startsWith("#FUNCTION_START#") &&
                                 leftData.endsWith("#FUNCTION_END#")) ||
-                            leftData.startsWith("__$DISCORD_DATA$__") || leftData.trim() === BundlerCustoms.EJS)
+                            leftData.startsWith("__$DISCORD_DATA$__") ||
+                            leftData.trim() === BundlerCustoms.EJS ||
+                            isMathResult(leftData))
                         ) {
                             leftData = parseString(leftData);
                             if (
@@ -97,7 +127,11 @@ export default class Condition {
                         leftData = leftData.toString() + "n";
                     }
                 } else {
-                    leftData = parseString(left.trim());
+                    // A math result with spaces inside (e.g. from `$math`)
+                    // is code, not text: leave it alone.
+                    leftData = isMathResult(left.trim())
+                        ? left.trim()
+                        : parseString(left.trim());
                 }
                 if (right.trim().split(" ").length === 1) {
                     rightData = parseData(right.trim());
@@ -113,7 +147,8 @@ export default class Condition {
                                 rightData.endsWith("#FUNCTION_END#")) ||
                             (rightData.startsWith("__$") &&
                                 rightData.includes("$__")) ||
-                            rightData.startsWith("__$DISCORD_DATA$__") || rightData.trim() === BundlerCustoms.EJS)
+                            rightData.startsWith("__$DISCORD_DATA$__") || rightData.trim() === BundlerCustoms.EJS ||
+                            isMathResult(rightData))
                         ) {
                             rightData = parseString(rightData);
                             if (
@@ -137,7 +172,11 @@ export default class Condition {
                     }
                     result = `${leftData}${operator}${rightData}`;
                 } else {
-                    rightData = parseString(right.trim());
+                    // A math result with spaces inside (e.g. from `$math`)
+                    // is code, not text: leave it alone.
+                    rightData = isMathResult(right.trim())
+                        ? right.trim()
+                        : parseString(right.trim());
                     result = `${leftData}${operator}${rightData}`;
                 }
             } else {
@@ -146,7 +185,9 @@ export default class Condition {
                     typeof result === "string" &&
                     (!result.endsWith("#FUNCTION_END#") ||
                         result.trim().split(" ").length > 1) &&
-                    !result.startsWith("#FUNCTION_START#") && result.trim() !== BundlerCustoms.EJS
+                    !result.startsWith("#FUNCTION_START#") && result.trim() !== BundlerCustoms.EJS &&
+                    !isMathResult(result) &&
+                    !isNumericExpression(result)
                 ) {
                     result = parseString(result);
                 }
