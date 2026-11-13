@@ -40,6 +40,125 @@ function protectArrayElement(condition: string): string {
 }
 
 /**
+ * A bare `array_element` inside a nested $function's arguments is consumed
+ * by that function before the condition solver ever sees it: math Getters
+ * turn an unmarked argument into `Number("array_element")` = NaN, and
+ * `$log` quotes it as the literal string `"array_element"`. Rewrite those
+ * occurrences to `$env[array_element]` first — `$env` compiles to the
+ * marked identifier nested functions treat as code, so the element survives
+ * into the generated callback.
+ *
+ * Only occurrences inside a nested `$function[...]` call are rewritten.
+ * Top-level occurrences are left alone (the condition solver's protection
+ * handles them), as are occurrences already inside `$env[...]` and
+ * occurrences inside string literals (where `array_element` is text, not
+ * the loop variable).
+ * @param {string} query - The raw query code.
+ * @returns {string} The query with bare `array_element` arguments wrapped
+ * in `$env[...]`.
+ */
+function rewriteBareArrayElement(query: string): string {
+    const isWordChar = (ch: string | undefined) =>
+        ch !== undefined && /[\w$]/.test(ch);
+    // The outer parser has already replaced `;` inside nested function
+    // brackets with `#FUNCTION_SEPARATOR#`, so that marker can sit right
+    // next to `array_element` (e.g. `$sum[array_element#FUNCTION_SEPARATOR#1]`)
+    // and must be treated as a plain separator, not as part of an
+    // identifier. Any other `#...#` marker next to it means the identifier
+    // is already protected code and must be left alone.
+    const afterSeparator = (pos: number) =>
+        query.slice(0, pos).endsWith(TranspilerCustoms.FSEP);
+    const beforeSeparator = (pos: number) =>
+        query.slice(pos).startsWith(TranspilerCustoms.FSEP);
+    const element = "array_element";
+    let result = "";
+    let i = 0;
+    // Open brackets; a `$name[` opener records the function name
+    // (lowercased), a plain `[` records null.
+    const frames: (string | null)[] = [];
+    let quote: string | null = null;
+    while (i < query.length) {
+        const ch = query[i];
+        if (quote !== null) {
+            result += ch;
+            if (ch === "\\" && i + 1 < query.length) {
+                result += query[i + 1];
+                i += 2;
+                continue;
+            }
+            if (ch === quote) quote = null;
+            i++;
+            continue;
+        }
+        if (ch === "\"" || ch === "'" || ch === "`") {
+            quote = ch;
+            result += ch;
+            i++;
+            continue;
+        }
+        if (ch === "$") {
+            const nameMatch = /^\$[A-Za-z_$][\w$]*/.exec(query.slice(i));
+            if (nameMatch && query[i + nameMatch[0].length] === "[") {
+                frames.push(nameMatch[0].slice(1).toLowerCase());
+                result += nameMatch[0] + "[";
+                i += nameMatch[0].length + 1;
+                continue;
+            }
+            result += ch;
+            i++;
+            continue;
+        }
+        if (ch === "[") {
+            frames.push(null);
+            result += ch;
+            i++;
+            continue;
+        }
+        if (ch === "]") {
+            frames.pop();
+            result += ch;
+            i++;
+            continue;
+        }
+        if (
+            query.startsWith(element, i) &&
+            !isWordChar(query[i - 1]) &&
+            !(query[i - 1] === "#" && !afterSeparator(i))
+        ) {
+            // Consume an optional `.property` chain, e.g. `array_element.length`.
+            let end = i + element.length;
+            while (query[end] === ".") {
+                const propMatch = /^\.[A-Za-z_$][\w$]*/.exec(query.slice(end));
+                if (!propMatch) break;
+                end += propMatch[0].length;
+            }
+            if (
+                !isWordChar(query[end]) &&
+                !(query[end] === "#" && !beforeSeparator(end))
+            ) {
+                // The innermost enclosing $function call, if any: plain
+                // brackets do not count.
+                let innermostFunction: string | null = null;
+                for (let f = frames.length - 1; f >= 0; f--) {
+                    if (frames[f] !== null) {
+                        innermostFunction = frames[f];
+                        break;
+                    }
+                }
+                if (innermostFunction !== null && innermostFunction !== "env") {
+                    result += `$env[${query.slice(i, end)}]`;
+                    i = end;
+                    continue;
+                }
+            }
+        }
+        result += ch;
+        i++;
+    }
+    return result;
+}
+
+/**
  * Shared iteration codegen for the `$array*` functions that take a query
  * over each element (`$arrayEvery`, `$arrayFilter`, `$arrayFind`,
  * `$arrayForEach`, `$arrayMap`).
@@ -71,7 +190,14 @@ export function transpileArrayCallback(
     const functionList = getFunctionList(query, Object.keys(functions));
     let executed = query;
     if (functionList.length) {
-        const result = Transpiler(query, {
+        // A bare `array_element` inside a nested $function's arguments
+        // would be consumed by that function (`$sum` turns it into NaN,
+        // `$log` quotes it) before the condition solver can protect it,
+        // so rewrite those arguments to `$env[...]` before transpiling.
+        // The no-$function path below is untouched: top-level occurrences
+        // keep the existing protection.
+        const rewrittenQuery = rewriteBareArrayElement(query);
+        const result = Transpiler(rewrittenQuery, {
             sendMessage: false,
             scopeData: {
                 variables: currentScope.variables,

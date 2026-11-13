@@ -4,6 +4,7 @@
 
 /**
  * Regression checks for the $array* callback codegen (bugs 1-3, fixed
+ * 2026-11-12, and the bare-`array_element`-in-nested-$function bug, fixed
  * 2026-11-12): the doc examples of $arrayMap / $arrayForEach must transpile
  * and run, and $arrayFilter / $arrayEvery / $arrayFind must generate
  * predicates that compare the element instead of a string.
@@ -166,6 +167,69 @@ async function check(label, code, want, wantLogs) {
         "$arrayFind bare predicate",
         "$arrayCreate[myArray;1;2;3;4;5]\n$arrayFind[myArray;array_element>3]",
         "4",
+    );
+
+    // Bare `array_element` inside a nested $function's arguments used to
+    // resolve to empty: math Getters turned it into `Number("array_element")`
+    // = NaN and `$log` quoted it as a string, because the nested transpiler
+    // ran before the condition solver's protection. The query is now
+    // rewritten to `$env[...]` before the nested transpiler sees it.
+    await check(
+        "$arrayFilter nested $sum with bare element",
+        "$arrayCreate[myArray;1;2;3;4;5]\n$arrayFilter[myArray;$sum[array_element;1]>2]",
+        "2,3,4,5",
+    );
+    await check(
+        "$arrayMap nested $sum with bare element",
+        "$arrayCreate[myArray;1;2;3;4;5]\n$arrayMap[myArray;$sum[array_element;1]]",
+        "2,3,4,5,6",
+    );
+    await check(
+        "$arrayEvery nested $sum with bare element",
+        "$arrayCreate[myArray;1;2;3;4;5]\n$arrayEvery[myArray;$sum[array_element;1]>0]",
+        "true",
+    );
+    // Same bug, different nested functions: it was never $sum-specific.
+    await check(
+        "$arrayFind nested $sum with bare element",
+        "$arrayCreate[myArray;1;2;3;4;5]\n$arrayFind[myArray;$sum[array_element;1]>3]",
+        "3",
+    );
+    await check(
+        "$arrayFilter nested $sub with bare element",
+        "$arrayCreate[myArray;1;2;3;4;5]\n$arrayFilter[myArray;$sub[array_element;1]>2]",
+        "4,5",
+    );
+    await check(
+        "$arrayForEach nested $log with bare element",
+        "$arrayCreate[myArray;1;2;3;4;5]\n$arrayForEach[myArray;$log[array_element]]",
+        null,
+        ["1", "2", "3", "4", "5"],
+    );
+    await check(
+        "$arrayForEach $if condition with bare element",
+        "$arrayCreate[myArray;1;2;3;4;5]\n$arrayForEach[myArray;$if[array_element>2;$log[big]]]",
+        null,
+        ["big", "big", "big"],
+    );
+    await check(
+        "$arrayMap nested $sum with bare element property",
+        "$arrayCreate[myArray;hello;world]\n$arrayMap[myArray;$sum[array_element.length;1]]",
+        "6,6",
+    );
+    // The rewrite must not touch `array_element` inside string literals:
+    // there it is text, and the log keeps the quotes (pre-existing behavior).
+    await check(
+        "$arrayForEach $log with quoted array_element stays literal",
+        "$arrayCreate[myArray;1;2;3;4;5]\n$arrayForEach[myArray;$log[\"array_element\"]]",
+        null,
+        [
+            '"array_element"',
+            '"array_element"',
+            '"array_element"',
+            '"array_element"',
+            '"array_element"',
+        ],
     );
 
     // The `<=` / `>=` operator fix lives in the shared Condition solver, so
